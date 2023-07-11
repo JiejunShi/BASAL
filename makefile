@@ -28,4 +28,3 @@ install:
 	install -d $(BIN)
 	install ./basal $(BIN)
 	install ./sam2bam.sh $(BIN)
-	install ./methratio.py $(BIN)

@@ -44,7 +44,7 @@ bit32_t n_aligned_a=0, n_unique_a=0, n_multiple_a=0;  //number of a reads aligne
 bit32_t n_aligned_b=0, n_unique_b=0, n_multiple_b=0;  //number of b reads aligned
 bit32_t ref_time, read_time;
 bit16_t tid[64];
-char version[] = "1.3";
+char version[] = "1.4";
 ostringstream message;
 
 void info(int level) {
@@ -209,8 +209,8 @@ cerr	<<"   ___    __    __    __    _    \n"
 		<<"  | |_)  / /\\  ( (`  / /\\  | |   \n"
 		<<"  |_|_) /_/--\\ _)_) /_/--\\ |_|__ \n"
 		<<"\nWelcome to use BASAL [Version "<<version<<"]\n"
-		<<"BASAL is designed for reads aligning of nucleobase-conversion(NC) sequencing. It supports most kinds of\n"
-		<<"DNA and RNA modification detecting techniques based on NC (Please check the option -M for more details).\n"
+		<<"BASAL is designed for reads aligning of Nucleotide-Base-Conversion(NBC) sequencing. It supports most kinds of\n"
+		<<"DNA and RNA modification detecting techniques based on NBC (Please check the option -M for more details).\n"
 		<<"BASAL takes advantages of both bitwise matching and HASH table seeding, so it is fast and accurate.\n"
 		<<"More conveniently, it doesn't require pre-built indexes of reference sequences, which saves space and memory.\n"
 		<<"\nUsage:	basal [options]"
@@ -219,7 +219,7 @@ cerr	<<"   ___    __    __    __    _    \n"
 		<<"       -b  <str>    input reads which is paired with -a, (default: none, single-end)\n"
 		<<"       -d  <str>    reference sequences in FASTA format [Required Argument]\n"
 		<<"       -o  <str>    output alignment in SAM/BAM format, if omitted, the output will be written to STDOUT in SAM format.\n"
-		<<"\n  Options for nucleobase-conversion:\n"
+		<<"\n  Options for Nucleotide-Base-conversion:\n"
         <<"       -M  <str>    the convert-from and convert-to base(s) seperated by ':' (default: C:T) \n"
 		<<"                    the convert-from base must be single letter from [A,T,C,G], \n"
 		<<"                    the convert-to base(s) can be single or multiple letters from [A,T,C,G,-], '-' represents deletion. \n"

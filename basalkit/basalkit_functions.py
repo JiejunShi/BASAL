@@ -9,6 +9,7 @@ import math
 import scipy.stats
 from statsmodels.stats.multitest import multipletests
 from copy import copy
+import pysam
 
 def disp(text):
     print('[BASALKIT @{}] \t{}'.format(time.asctime(), text), file=sys.stderr)
@@ -268,13 +269,12 @@ def Load_Alignment(ifiles,convert_from_base,convert_to_base,conversion_mode,mole
         disp('Read {} lines'.format(nline))
     return meth0,meth1,depth,meth_ct,depth_ct,nmap
 
-def correctCigar(cigar,XR,convert_from_base):
+def rightmostD(cigar,XR,convert_from_base):
     cigarRE = re.compile(r'\d+[a-zA-Z]')
     cigar_old=[]
     for align in cigarRE.findall(cigar):
         if align[-1]=="D":Dsize=int(align[:-1])
         cigar_old.append(int(align[:-1]));cigar_old.append(align[-1])
-
     cigar_new=copy(cigar_old)
     D1 = cigar_old[0]+cigar_old[2]-1
     if XR[D1]==convert_from_base:
@@ -300,7 +300,7 @@ def correctCigar(cigar,XR,convert_from_base):
     cigar_new="".join(map(str,cigar_new))
     return cigar_new
 
-def shiftCIGAR(Alignments,output,convert_from_base,sam_path):
+def shiftD(Alignments,output,convert_from_base,sam_path):
     # load Alignment
     if Alignments[-4:].upper() == '.SAM':
         fin=open(Alignments)
@@ -319,7 +319,7 @@ def shiftCIGAR(Alignments,output,convert_from_base,sam_path):
         ZS=col[13][5:7]
         which_base=convert_from_base
         if ZS=="+-" or ZS=="-+":which_base=reverse_complement(convert_from_base)
-        cigar_new=correctCigar(cigar=cigar,XR=XR,convert_from_base=which_base)
+        cigar_new=rightmostD(cigar=cigar,XR=XR,convert_from_base=which_base)
         col[5]=cigar_new
         fout.write("\t".join(col))
     fout.close()
@@ -490,7 +490,275 @@ def read_gtf(fn):
 
     return output
 
-def mergeFile(transcriptomeAlignment,output,gtf,unlift,rvstrand):
+def generate_new_cigar(all_bins, start, end, old_cigar, trans_dir):
+    ''' order: small --> big corrdinate '''
+    new_cigar_tmp = []  # no del and insert, with intron
+    if trans_dir == "-":
+        old_cigar = old_cigar[::-1]
+        all_bins = all_bins[::-1]
+        start, end = end, start
+    all_bins_iter = iter(all_bins)
+    while (1):
+        try:
+            x, y = next(all_bins_iter)
+            if trans_dir == "-": x, y = y, x
+            if x <= start <= y < end:
+                new_cigar_tmp.append([0, y - start + 1])
+                exon_edge = y
+            elif x <= start <= end <= y:
+                new_cigar_tmp.append([0, end - start + 1])
+                break
+            elif start < x <= y < end:
+                if x - exon_edge - 1 > 0:
+                    new_cigar_tmp.append([3, x - exon_edge - 1])
+                new_cigar_tmp.append([0, y - x + 1])
+                exon_edge = y
+            elif start < x <= end <= y:
+                if x - exon_edge - 1 > 0:
+                    new_cigar_tmp.append([3, x - exon_edge - 1])
+                new_cigar_tmp.append([0, end - x + 1])
+                break
+        except StopIteration:
+            sys.exit()
+
+    new_cigar_tmp_tmp = []
+
+    new_cigar_tmp_iter = iter(new_cigar_tmp)
+    cigar_type, number = next(new_cigar_tmp_iter)
+    while (1):
+        try:
+            cigar_type_1, number_1 = next(new_cigar_tmp_iter)
+            if cigar_type == cigar_type_1:
+                number = number + number_1
+            else:
+                new_cigar_tmp_tmp.append([cigar_type, number])
+                cigar_type, number = cigar_type_1, number_1
+        except StopIteration:
+            new_cigar_tmp_tmp.append([cigar_type, number])
+            break
+    new_cigar_tmp = new_cigar_tmp_tmp
+    new_cigar = []
+    # debug
+
+    # old_M, old = cal(old_cigar)
+    # NT_M, NT = cal(new_cigar_tmp)
+
+    new_cigar_tmp_iter = iter(new_cigar_tmp)
+    block = next(new_cigar_tmp_iter)
+    for cigar_type, num in old_cigar:
+        try:
+            if block[0] == 3:
+                new_cigar.append((block[0], block[1]))
+                block = next(new_cigar_tmp_iter)
+            if cigar_type == 0:  # matched
+                if num < block[1]:  # samller than the original block
+                    new_cigar.append((0, num))
+                    block[1] = block[1] - num
+                elif num == block[1]:  # remove a block
+                    new_cigar.append((0, num))
+                    block = next(new_cigar_tmp_iter)
+                    if block[0] == 3:  # intron
+                        new_cigar.append((block[0], block[1]))
+                        block = next(new_cigar_tmp_iter)
+                else:
+                    while num > block[1]:
+                        new_cigar.append((0, block[1]))
+                        num = num - block[1]
+                        block = next(new_cigar_tmp_iter)
+                        new_cigar.append((block[0], block[1]))  # intron
+                        block = next(new_cigar_tmp_iter)  # until the last exon
+                    if num == block[1]:
+                        new_cigar.append((0, num))
+                        block = next(new_cigar_tmp_iter)
+                    elif num < block[1]:
+                        block[1] = block[1] - num
+                        new_cigar.append((0, num))
+                    if block[1] < 0:
+                        raise Warning("Block start <0")
+            elif cigar_type == 1:  # insert
+                new_cigar.append((1, num))
+            elif cigar_type == 2:  # del
+                if num < block[1]:
+                    new_cigar.append((2, num))
+                    block[1] = block[1] - num
+                elif num == block[1]:
+                    new_cigar.append((2, num))
+                    block = next(new_cigar_tmp_iter)
+                    if block[0] == 3:
+                        new_cigar.append((block[0], block[1]))
+                        block = next(new_cigar_tmp_iter)
+                else:
+                    while num > block[1]:
+                        new_cigar.append((2, block[1]))
+                        num = num - block[1]
+                        block = next(new_cigar_tmp_iter)
+                        new_cigar.append((block[0], block[1]))  # intron
+                        block = next(new_cigar_tmp_iter)  # until the last exon
+                    if num == block[1]:
+                        new_cigar.append((2, num))
+                        block = next(new_cigar_tmp_iter)
+                    elif num < block[1]:
+                        block[1] = block[1] - num
+                        new_cigar.append((2, num))
+                    if block[1] < 0:
+                        raise Warning("Block start <0")
+            elif cigar_type == 3:
+                new_cigar.append((3, num))
+            elif cigar_type == 4:
+                new_cigar.append((4, num))
+            elif cigar_type == 5:
+                new_cigar.append((5, num))
+            elif cigar_type == 6:
+                new_cigar.append((6, num))
+        except StopIteration:
+            continue
+    # new_M,new = cal(new_cigar)
+    # if new_M != old_M:
+
+    # debug
+
+    return new_cigar
+
+def map_to_genome(header_dict,gtf,segment,unlift,UNLIFT):
+    try:
+        genome_info = gtf.get(segment.reference_name.split('|')[0])
+        modified_exons = OrderedDict(((key[0] - 1, key[1] - 1), (value[0] - 1, value[1] - 1))
+            for key, value in genome_info["exons"].items())
+        genome_info["exons"] = modified_exons
+        new_ref_id = header_dict.get(genome_info['chr'])
+        trans_dir = genome_info['strand']
+    except TypeError:
+        genome_info = None
+        new_ref_id = None
+    if genome_info and new_ref_id is not None:
+        old_start = segment.reference_start  # 0-based
+        old_end = segment.reference_end - 1  # 1-based
+        
+        new_start = None
+        new_end = None
+        if trans_dir == "+":
+            genome_info_iter = list(genome_info["exons"].items())
+        elif trans_dir == "-":
+            genome_info_iter = list(genome_info["exons"].items())[::-1]
+        list_maxend = []
+        for key, values in genome_info_iter:
+            list_maxend += [key[0], key[1]]
+        len_transcript = max(list_maxend)
+        if old_end <= len_transcript:
+            while new_start is None or new_end is None:
+                for key, values in genome_info_iter:
+                    start, end = key
+                    geno_start, geno_end = values
+                    if trans_dir == "+":
+                        if start <= old_start <= end:
+                            new_start = geno_start + old_start - start
+                        if start <= old_end <= end:
+                            new_end = geno_start + old_end - start
+                    elif trans_dir == "-":
+                        geno_start, geno_end = geno_end, geno_start
+                        if start <= old_end <= end:
+                            new_end = geno_start + (end - old_end)
+                        if start <= old_start <= end:
+                            new_start = geno_start + (end - old_start)
+                    else:
+                        raise Warning("Transcription direction loss.")
+                new_cigar = generate_new_cigar(list(genome_info["exons"].values()), new_start, new_end, segment.cigar,genome_info['strand'])
+                
+                qual = segment.query_qualities
+                mpq = segment.mapping_quality
+                seq = segment.query_sequence
+                tags = segment.get_tags()
+                flag = segment.flag
+
+                segment_output = pysam.AlignedSegment()
+                segment_output.tags = segment.tags
+                if trans_dir == "-":
+                    new_start, new_end = new_end, new_start
+                    qual = qual[::-1]
+                    seq = reverse_complement(segment.query_sequence)
+                    if segment.is_reverse:
+                        segment.is_reverse = False
+                        segment.mate_is_reverse = True
+                    else:
+                        segment.is_reverse = True
+                        segment.mate_is_reverse = False
+                    if flag == 0:
+                        new_flag = 16
+                    else:
+                        flags = []
+                        bit = 1
+                        while flag >= bit:
+                            if flag & bit:
+                                flags.append(bit)
+                            bit <<= 1
+                        if 16 in flags:
+                            flags.remove(16)
+                        else:
+                            flags.append(16)                        
+                        new_flag = 0
+                        for f in flags:
+                            new_flag |= f
+                else:new_flag=segment.flag
+                                
+                if "ZS" in [tag[0] for tag in tags]:
+                    for tag, value in tags:
+                        if tag == "ZS":
+                            ts_value = value
+                            if ts_value=='++':new_ts='--'
+                            elif ts_value=='+-':new_ts='-+'
+                            elif ts_value=='-+':new_ts='+-'
+                            elif ts_value=='--':new_ts='++'
+                segment_output.set_tag("ZS", new_ts, value_type="Z") 
+                if "XR" in [tag[0] for tag in tags]:
+                    for tag, value in tags:
+                        if tag == "XR":
+                            xr_value = value
+                            xr_value = xr_value.upper()
+                            new_xr=reverse_complement(xr_value)
+                            new_xr=new_xr[:2].lower() + new_xr[2:-2] + new_xr[-2:].lower()
+                    segment_output.set_tag("XR", new_xr, value_type="Z")
+
+                segment_output.query_name = segment.query_name
+                segment_output.flag = new_flag
+                segment_output.reference_id = new_ref_id
+                segment_output.reference_start = new_start
+                segment_output.cigar = new_cigar
+                segment_output.query_sequence = seq
+                segment_output.query_qualities = qual
+                segment_output.mapping_quality = mpq
+                segment_output.set_tag("TN", segment.reference_name)
+                if segment_output:
+                    return segment_output
+        else:
+            if unlift == True:
+                UNLIFT.write(segment)
+    else:
+        if unlift == True:
+            UNLIFT.write(segment)
+
+def read_headers(fn,hid,new_header,hid_dict,lift_over):
+    lift_over[fn] = {}
+    with pysam.AlignmentFile(fn, 'rb') as INPUT:
+        n = 0
+        for header in INPUT.header["SQ"]:
+            if header['SN'] not in hid_dict:
+                # print(header['SN'])
+                hid_dict[header['SN']] = hid
+                new_header['SQ'].append(header)
+                hid += 1
+            lift_over[fn][n] = hid_dict[header['SN']]
+            n += 1
+    return hid,new_header,hid_dict,lift_over
+
+def merge_bam(lift_over,fn,fout):
+    with pysam.AlignmentFile(fn, 'rb') as INPUT: 
+        for read in INPUT:
+            read.reference_id = lift_over[fn][read.reference_id]
+            read.next_reference_id = -1
+            read.next_reference_start = 0
+            fout.write(read)
+
+def merge_tsv(transcriptomeAlignment,output,gtf,unlift,rvstrand):
     outfile = open(output+"_t2g.tsv", 'w')
     if unlift == True:unlifted=open(output+'_unlifted.tsv','w')
 

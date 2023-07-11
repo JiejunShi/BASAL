@@ -1,4 +1,4 @@
-# This script is called by 'merge' function. DONOT run it alone!
+# This script is called by 'mergeTSV' function. DONOT run it alone!
 
 cat $1"_t2g.tsv" $2 | sort -k1b,1 -k2n,2 -k3b,3 | awk '{if($1~/^chr/){print}}' > $1".mergetmp";
 
