@@ -87,10 +87,10 @@ public:
     //cache line 4+    
     bit32_t profile[MAXSNPS+1][16] __attribute__((aligned(64)));
     
- //int chains;   //0: forward strands only ; 1: forward and reverse strands	
+    //int chains;   //0: forward strands only ; 1: forward and reverse strands	
 	string adapter[10];
     //int input_format; // 0: fasta, 1:fastq, 2: SAM, 3: BAM, -1: auto detect
-    //int output_format; // 0: bsp, 1:SAM, 2: BAM, -1: auto detect
+    //int output_format; // 1:SAM, 2: BAM, -1: auto detect
     //int gz_input, gz_ref; // 0: no, 1: yes, -1: auto detect
 
     void disp_bin64(bit64_t t, int len=32) {

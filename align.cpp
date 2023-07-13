@@ -667,73 +667,34 @@ void SingleAlign::StringAlign(RefSeq &ref, string &os) {
 void SingleAlign::s_OutHit(int chain, int n, bit8_t nsnps, gHit *hit, int insert_size, RefSeq &ref, string &os) {
     bit32_t ii, rev_seq;
     rev_seq=chain^(hit->chr%2);
-    if(param.out_sam){ //output in .sam format
-        int flag;
-        flag=0x40*_pread->readset;
-        if(n<0){
-            if(!param.out_unmap) return;
-            flag|=0x204; //QC
-          	sprintf(_ch,"%s\t%d\t*\t0\t0\t*\t*\t0\t0\t%s\t%s\n",_pread->name.c_str(),flag,_pread->seq.c_str(),_pread->qual.c_str());
-            os.append(_ch);
-        }
-        else if(n==0) {
-            if(!param.out_unmap) return;
-            flag|=0x4; //NM
-            //cout<<"AAA, flag:"<<flag<<endl;
-           	sprintf(_ch,"%s\t%d\t*\t0\t0\t*\t*\t0\t0\t%s\t%s\n",_pread->name.c_str(),flag,_pread->seq.c_str(),_pread->qual.c_str());
-            os.append(_ch);
-        }
-        else{
-            if(n==1) flag|=0x0; //UM
-            else flag|=0x100; //MA & OF
-            if(rev_seq&&n) flag|=0x010; //reverse read seq
-            //cout<<(int)hit->chr<<" "<<hit->loc<<" "<<(int)nsnps<<endl;
-            //cout<<"BBB, flag:"<<flag<<endl;
-            if(hit->gap_size==0) sprintf(cigar, "%uM", map_readlen);
-            else if(hit->gap_size>0) sprintf(cigar, "%dM%dD%dM", (int)hit->gap_pos, (int)hit->gap_size, (int)map_readlen-(int)hit->gap_pos);
-            else sprintf(cigar, "%dM%dI%dM", (int)hit->gap_pos, -(int)hit->gap_size, (int)map_readlen-(int)hit->gap_pos+(int)hit->gap_size);
-            sprintf(_ch,"%s\t%d\t%s\t%u\t255\t%s\t*\t0\t0\t%s\t%s\tNM:i:%d",_pread->name.c_str(),flag,ref.title[hit->chr].name.c_str(),hit->loc+1,cigar,_outseq[rev_seq].c_str(),_outqual[rev_seq].c_str(),nsnps);
-            os.append(_ch);
-            if(param.out_ref) {
-                int ptr=0;
-                for(ii=2;ii>0;ii--) {
-                    if(hit->loc<ii) continue;
-                    _mapseq[ptr++]=param.useful_nt[ref.bfa[hit->chr&0xfffeU].s[(hit->loc-ii)/SEGLEN]>>(SEGLEN*2-2-((hit->loc-ii)%SEGLEN)*2)&0x3]+32;
-                }
-                for(ii=0;ii<map_readlen+2;ii++) {
-                    _mapseq[ptr++]=param.useful_nt[ref.bfa[hit->chr&0xfffeU].s[(hit->loc+ii)/SEGLEN]>>(SEGLEN*2-2-((hit->loc+ii)%SEGLEN)*2)&0x3];
-                }
-                _mapseq[ptr]=0; _mapseq[ptr-1]+=32; _mapseq[ptr-2]+=32;
-                sprintf(_ch, "\tXR:Z:%s",_mapseq);
-                os.append(_ch);
-            }
 
-            if(param.RRBS_flag){
-                seg_info=ref.CCGG_seglen(hit->chr, hit->loc, map_readlen);
-                sprintf(_ch,"\tZP:i:%d\tZL:i:%d",seg_info.first,seg_info.second);
-                os.append(_ch);
-            }
-
-            sprintf(_ch,"\tZS:Z:%c%c\n",chain_flag[hit->chr%2], chain_flag[chain]);
-            os.append(_ch);
-        }
+    int flag;
+    flag=0x40*_pread->readset;
+    if(n<0){
+        if(!param.out_unmap) return;
+        flag|=0x204; //QC
+      	sprintf(_ch,"%s\t%d\t*\t0\t0\t*\t*\t0\t0\t%s\t%s\n",_pread->name.c_str(),flag,_pread->seq.c_str(),_pread->qual.c_str());
+        os.append(_ch);
     }
-
-    else{ //output in .bsp format
-        if(!param.out_unmap&&n<=0) return;
-        sprintf(_ch, "%s\t", _pread->name.c_str());
-    	os.append(_ch);
-
-    	sprintf(_ch, "%s\t%s\t", _outseq[rev_seq].c_str(), _outqual[rev_seq].c_str());
-    	os.append(_ch);
-
-    	if (n<0) os.append("QC");
-    	else if(n==0) os.append("NM");
-    	else if(n==1) os.append("UM");
-    	else if(n>=(int)param.max_num_hits) os.append("OF");
-    	else os.append("MA");
-
-        if(n>0){
+    else if(n==0) {
+        if(!param.out_unmap) return;
+        flag|=0x4; //NM
+        //cout<<"AAA, flag:"<<flag<<endl;
+       	sprintf(_ch,"%s\t%d\t*\t0\t0\t*\t*\t0\t0\t%s\t%s\n",_pread->name.c_str(),flag,_pread->seq.c_str(),_pread->qual.c_str());
+        os.append(_ch);
+    }
+    else{
+        if(n==1) flag|=0x0; //UM
+        else flag|=0x100; //MA & OF
+        if(rev_seq&&n) flag|=0x010; //reverse read seq
+        //cout<<(int)hit->chr<<" "<<hit->loc<<" "<<(int)nsnps<<endl;
+        //cout<<"BBB, flag:"<<flag<<endl;
+        if(hit->gap_size==0) sprintf(cigar, "%uM", map_readlen);
+        else if(hit->gap_size>0) sprintf(cigar, "%dM%dD%dM", (int)hit->gap_pos, (int)hit->gap_size, (int)map_readlen-(int)hit->gap_pos);
+        else sprintf(cigar, "%dM%dI%dM", (int)hit->gap_pos, -(int)hit->gap_size, (int)map_readlen-(int)hit->gap_pos+(int)hit->gap_size);
+        sprintf(_ch,"%s\t%d\t%s\t%u\t255\t%s\t*\t0\t0\t%s\t%s\tNM:i:%d",_pread->name.c_str(),flag,ref.title[hit->chr].name.c_str(),hit->loc+1,cigar,_outseq[rev_seq].c_str(),_outqual[rev_seq].c_str(),nsnps);
+        os.append(_ch);
+        if(param.out_ref) {
             int ptr=0;
             for(ii=2;ii>0;ii--) {
                 if(hit->loc<ii) continue;
@@ -743,22 +704,18 @@ void SingleAlign::s_OutHit(int chain, int n, bit8_t nsnps, gHit *hit, int insert
                 _mapseq[ptr++]=param.useful_nt[ref.bfa[hit->chr&0xfffeU].s[(hit->loc+ii)/SEGLEN]>>(SEGLEN*2-2-((hit->loc+ii)%SEGLEN)*2)&0x3];
             }
             _mapseq[ptr]=0; _mapseq[ptr-1]+=32; _mapseq[ptr-2]+=32;
-
-        	sprintf(_ch, "\t%s\t%u\t%c%c\t%d\t%s\t", ref.title[hit->chr].name.c_str(), hit->loc+1, chain_flag[hit->chr%2],  chain_flag[chain], insert_size, _mapseq);
-            os.append(_ch);
-
-            if(hit->gap_size) sprintf(_ch, "%d:%d:%d\t", nsnps, (int)hit->gap_size, (int)hit->gap_pos);
-            else sprintf(_ch, "%d\t", nsnps);
-            os.append(_ch);
-
-            for(ii=0; ii<read_max_snp_num; ii++){
-                sprintf(_ch, "%d:", _cur_n_hit[ii]+_cur_n_chit[ii]);
-                os.append(_ch);
-            }
-            sprintf(_ch, "%d", _cur_n_hit[ii]+_cur_n_chit[ii]);
+            sprintf(_ch, "\tXR:Z:%s",_mapseq);
             os.append(_ch);
         }
-    	os.append("\n");
+
+        if(param.RRBS_flag){
+            seg_info=ref.CCGG_seglen(hit->chr, hit->loc, map_readlen);
+            sprintf(_ch,"\tZP:i:%d\tZL:i:%d",seg_info.first,seg_info.second);
+            os.append(_ch);
+        }
+
+        sprintf(_ch,"\tZS:Z:%c%c\n",chain_flag[hit->chr%2], chain_flag[chain]);
+        os.append(_ch);
     }
 
     //1	QNAME	Query (pair) NAME

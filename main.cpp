@@ -542,7 +542,6 @@ void RunProcess(void) {
 		else {
 			cerr<<"\tOutput file: "<<out_align_file;
 			switch(param.out_sam) {
-				case 0: message<<"\t (format: BSP)\n"; break;
 				case 1: message<<"\t (format: SAM)\n"; break;
 				case 2: message<<"\t (format: SAM, automatically convert to BAM)\n"; break;
 			}
@@ -619,7 +618,6 @@ void RunProcess(void) {
         else {
         	message<<"\tOutput file: "<<out_align_file;
 			switch(param.out_sam) {
-				case 0: message<<"\t (format: BSP)\n"; break;
 				case 1: message<<"\t (format: SAM)\n"; break;
 				case 2: message<<"\t (format: SAM, automatically convert to BAM)\n"; break;
 			}
