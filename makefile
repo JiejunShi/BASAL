@@ -2,9 +2,6 @@ CC=	g++
 
 BIN = $(DESTDIR)/usr/bin
 FLAGS= -DMAXHITS=1000 -DTHREAD -funroll-loops -Lsamtools -Isamtools -Lgzstream -Igzstream -O3 -m64
-#FLAGS= -DMAXHITS=1000 -funroll-loops -Lsamtools -Isamtools -Lgzstream -Igzstream -g -m64
-#FLAGS= -DMAXHITS=1000 -funroll-loops -Lsamtools -Isamtools -Lgzstream -Igzstream -O3 -Wall -Wno-strict-aliasing -m64
-
 
 THREAD=	-lpthread
 
@@ -27,4 +24,3 @@ clean:
 install:
 	install -d $(BIN)
 	install ./basal $(BIN)
-	install ./sam2bam.sh $(BIN)

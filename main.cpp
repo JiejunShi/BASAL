@@ -716,7 +716,9 @@ int main(int argc, char *argv[]) {
 	if(param.pairend) cerr<<" pairs per sec."<<endl;
 	else cerr<<"s per sec."<<endl;
 	*/
-    if(param.out_sam==2&&param.pipe_out==0){
+
+	/*shij
+	if(param.out_sam==2&&param.pipe_out==0){
 		char sys_cmd[PATH_MAX+20], abs_bam_file[PATH_MAX];
 		char *res=realpath(out_align_file.c_str(), abs_bam_file);
 		if(res) {
@@ -728,6 +730,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	info(1);
+	*/
     ref1.ReleaseIndex();//ref.ReleaseIndex();shij
 	return 0;
 }
