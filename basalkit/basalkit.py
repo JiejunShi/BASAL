@@ -166,7 +166,7 @@ def main(cmd=''):
         parser.add_argument('-o', '--output',dest="output",metavar='OUTPUT',default='epiallele.tsv',\
                             help="Output epiallele file name.")
         parser.add_argument('-y', '--read_pos',action="store_true",dest="read_pos",default=False,\
-                            help="Whether to report the read position on last two columns.")
+                            help="The 2nd and 3rd columns of output file will be reported as the start and end position of the read. By default, they are reported as the positions of first and last convert-from base covered by the read.")
         parser.add_argument('-s', '--sam_path',dest="sam_path",metavar='PATH',default=None,\
                             help="Path to samtools.")
         parser.add_argument('-u', '--unique',action="store_true",dest="unique",default=False,\
@@ -393,7 +393,7 @@ def main(cmd=''):
         new_header = {}
         new_header['HD'] = {'SO': 'unsorted', 'VN': '1.0'}
         new_header['SQ'] = []
-        
+
         file_sortBAM=outputprefix + ".t2g.bam"
         file_genomeBAM=args.genomeAlignmentBam
         file_mergeBAM=outputprefix + ".merge.bam"
@@ -401,8 +401,8 @@ def main(cmd=''):
         input2=[os.path.join(current_path, file_sortBAM),os.path.join(current_path, file_genomeBAM)]
         for fn in input2:
             hid,new_header,hid_dict,lift_over = read_headers(fn,hid,new_header,hid_dict,lift_over)
-        
-        with pysam.AlignmentFile(file_mergeBAM, 'wb', header = new_header) as OUTPUT: 
+
+        with pysam.AlignmentFile(file_mergeBAM, 'wb', header = new_header) as OUTPUT:
             for fn in input2:
                 merge_bam(lift_over,fn,OUTPUT)
         pysam.sort("-o", file_mergeBAM.replace(".bam",".sorted.bam"), file_mergeBAM)

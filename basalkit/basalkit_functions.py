@@ -621,10 +621,7 @@ def generate_new_cigar(all_bins, start, end, old_cigar, trans_dir):
 
 def map_to_genome(header_dict,gtf,segment,unlift,UNLIFT):
     try:
-        genome_info = gtf.get(segment.reference_name.split('|')[0])
-        modified_exons = OrderedDict(((key[0] - 1, key[1] - 1), (value[0] - 1, value[1] - 1))
-            for key, value in genome_info["exons"].items())
-        genome_info["exons"] = modified_exons
+        genome_info = gtf.get(segment.reference_name)
         new_ref_id = header_dict.get(genome_info['chr'])
         trans_dir = genome_info['strand']
     except TypeError:
@@ -633,13 +630,16 @@ def map_to_genome(header_dict,gtf,segment,unlift,UNLIFT):
     if genome_info and new_ref_id is not None:
         old_start = segment.reference_start  # 0-based
         old_end = segment.reference_end - 1  # 1-based
-        
+        modified_exons = OrderedDict(((key[0] - 1, key[1] - 1), (value[0] - 1, value[1] - 1))
+            for key, value in genome_info["exons"].items())
+        #genome_info["exons"] = modified_exons
+
         new_start = None
         new_end = None
         if trans_dir == "+":
-            genome_info_iter = list(genome_info["exons"].items())
+            genome_info_iter = list(modified_exons.items())
         elif trans_dir == "-":
-            genome_info_iter = list(genome_info["exons"].items())[::-1]
+            genome_info_iter = list(modified_exons.items())[::-1]
         list_maxend = []
         for key, values in genome_info_iter:
             list_maxend += [key[0], key[1]]
@@ -662,8 +662,9 @@ def map_to_genome(header_dict,gtf,segment,unlift,UNLIFT):
                             new_start = geno_start + (end - old_start)
                     else:
                         raise Warning("Transcription direction loss.")
-                new_cigar = generate_new_cigar(list(genome_info["exons"].values()), new_start, new_end, segment.cigar,genome_info['strand'])
-                
+                new_cigar = generate_new_cigar(list(modified_exons.values()), new_start, new_end, segment.cigar,
+                                               genome_info['strand'])
+
                 qual = segment.query_qualities
                 mpq = segment.mapping_quality
                 seq = segment.query_sequence
@@ -694,12 +695,12 @@ def map_to_genome(header_dict,gtf,segment,unlift,UNLIFT):
                         if 16 in flags:
                             flags.remove(16)
                         else:
-                            flags.append(16)                        
+                            flags.append(16)
                         new_flag = 0
                         for f in flags:
                             new_flag |= f
                 else:new_flag=segment.flag
-                                
+
                 if "ZS" in [tag[0] for tag in tags]:
                     for tag, value in tags:
                         if tag == "ZS":
@@ -708,7 +709,7 @@ def map_to_genome(header_dict,gtf,segment,unlift,UNLIFT):
                             elif ts_value=='+-':new_ts='-+'
                             elif ts_value=='-+':new_ts='+-'
                             elif ts_value=='--':new_ts='++'
-                segment_output.set_tag("ZS", new_ts, value_type="Z") 
+                segment_output.set_tag("ZS", new_ts, value_type="Z")
                 if "XR" in [tag[0] for tag in tags]:
                     for tag, value in tags:
                         if tag == "XR":
@@ -751,7 +752,7 @@ def read_headers(fn,hid,new_header,hid_dict,lift_over):
     return hid,new_header,hid_dict,lift_over
 
 def merge_bam(lift_over,fn,fout):
-    with pysam.AlignmentFile(fn, 'rb') as INPUT: 
+    with pysam.AlignmentFile(fn, 'rb') as INPUT:
         for read in INPUT:
             read.reference_id = lift_over[fn][read.reference_id]
             read.next_reference_id = -1
@@ -974,7 +975,7 @@ def bam2epiallele(ifiles,convert_from_base,convert_to_base,conversion_mode,align
                 MU_start=MU_pos[0];MU_end=MU_pos[-1];
                 # report absolute position of each nucleotide
                 if read_pos:
-                    fo_epa.write("\t".join([cr,str(MU_start),str(MU_end),strand,"".join(MU_seq), ";".join(map(str,MU_pos)),str(pos),str(pos2)])+"\n")
+                    fo_epa.write("\t".join([cr,str(pos),str(pos2),strand,"".join(MU_seq), ";".join(map(str,MU_pos))])+"\n")
                 else:
                     fo_epa.write("\t".join([cr,str(MU_start),str(MU_end),strand,"".join(MU_seq), ";".join(map(str,MU_pos))])+"\n")
                 # report relative position to the first nucleotide of each nucleotide, not convenient for downstream analysis
@@ -982,7 +983,7 @@ def bam2epiallele(ifiles,convert_from_base,convert_to_base,conversion_mode,align
         fin.close()
     fo_epa.close()
     disp('Read {} lines'.format(nline))
-    disp('Total {} valid mappings, {} of them donot cover {} base in requested context'.format(nmap,n_NotMatch,convert_from_base))
+    disp('Total {} valid mappings, {} of them donot cover convert-from base({}) in requested context'.format(nmap,n_NotMatch,convert_from_base))
 
 def PDR(MU_str=[]):
     x=dict(Counter(MU_str))
