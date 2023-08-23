@@ -843,6 +843,7 @@ def calc_pval(treat,ctrl,output_prefix,min_depth,method,fdr_method,fdr_cutoff,mi
         matched_rows = pd.merge(treat_df.iloc[:, :3], ctrl_df.iloc[:, :3], how='inner')
         matched_treat = pd.merge(matched_rows, treat_df, on=treat_df.columns[:3].tolist())
         matched_ctrl = pd.merge(matched_rows, ctrl_df, on=treat_df.columns[:3].tolist())
+        del matched_rows,treat_df,ctrl_df
         disp("{} common sites found between treat and ctrl".format(len(matched_treat)))
         for i in range(0,len(matched_treat)):
             row_treat=matched_treat.iloc[i]
