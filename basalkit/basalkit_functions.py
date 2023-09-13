@@ -59,8 +59,11 @@ def parseCigar(seq, cigar):
             index += length
         elif op == 'I' or op == 'S':
             seq = seq[:index]+seq[index+length:]
-        elif op == 'D' or op == 'N':
+        elif op == 'D':
             seq = seq[:index]+'-'*length+seq[index:]
+            index += length
+        elif op == 'N':
+            seq = seq[:index]+'+'*length+seq[index:]
             index += length
         elif op == 'H' or op == 'P':
             continue
@@ -316,7 +319,7 @@ def shiftD(Alignments,output,convert_from_base,sam_path):
         XR="";ZS=""
         for col0 in col:
             if col0.startswith("XR:Z:"):
-                XR=col0[7:-2]#ref
+                XR=re.sub(r"[a-z]","",col0[5:])#ref
             if col0.startswith("ZS:Z:"):
                 ZS=col0[5:7]
         if XR=="" or ZS=="":
@@ -807,7 +810,7 @@ def merge_tsv(transcriptomeAlignment,output,gtf,unlift,rvstrand):
     outfile.close()
     if unlift == True:unlifted.close()
 
-def calc_pval(treat,ctrl,output_prefix,min_depth,method,fdr_method,fdr_cutoff,min_diff):
+def calc_pval(treat,ctrl,output_prefix,min_depth,method,fdr_method):
     treat_df=pd.read_csv(treat,sep='\t',compression='infer')
     treat_df=treat_df[treat_df.N_total>=min_depth]
     if ctrl is not None:
@@ -877,12 +880,6 @@ def calc_pval(treat,ctrl,output_prefix,min_depth,method,fdr_method,fdr_cutoff,mi
     else:
         os.system("rm {} {};gzip {}".format(output_prefix + "_pval.tsv",output_prefix + "_FDR_col.tsv",output_prefix + "_FDR.tsv"))
         disp('FDR values are saved in {}'.format(output_prefix + "_FDR.tsv.gz"))
-        if ctrl is None:
-            tmp=os.system("zcat "+output_prefix + "_FDR.tsv.gz | awk -v fdr_cutoff="+str(fdr_cutoff)+" -v min_diff="+str(min_diff)+" '{if(NR==1){print}else{d=$5-$9;if(($11<=fdr_cutoff)&&(d>=min_diff)){print}}}' > "+output_prefix + "_SelectedSites.tsv")
-        else:
-            tmp=os.system("zcat "+output_prefix + "_FDR.tsv.gz | awk -v fdr_cutoff="+str(fdr_cutoff)+" -v min_diff="+str(min_diff)+" '{if(NR==1){print}else{d=$5-$11;if(($13<=fdr_cutoff)&&(d>=min_diff)){print}}}' > "+output_prefix + "_SelectedSites.tsv")
-        if tmp!=0:disp('Failed to Select Sites')
-        else:disp('Selected Sites are saved in {}'.format(output_prefix + "_SelectedSites.tsv"))
 
 def read_methy_files(ifile, cols=[0,1,2,6,7]):
     names = ['chr', 'pos', 'strand', 'modified', 'total']
