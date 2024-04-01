@@ -46,15 +46,12 @@ No installation needed for BASALkit.
 	                    The maximum mismatches will be reduced to 15 if it exceed 15.
 	       -g  <int>    maximum size of gap (deletion/insertion), <=3 bp. default: 0
 	       -w  <int>    maximum number of equal best hits to count, <=1000
-	       -3           using 3-nucleotide mapping approach, only valid if there is only one convert-to base
 	       -B  <int>    start from the Nth read or read pair, default: 1
 	       -E  <int>    end at the Nth read or read pair, default: 4,294,967,295
-	       -I  <int>    index interval (1~16), the reference genome will be indexed every Nbp, default: 4.
-	                    Larger -I uses less memory. For human genome, -I 4 uses ~9GB, -I 16 only uses ~5GB.
-	                    For RRBS, index interval is fixed to 1bp and this option is neglected.
+	       -I  <int>    index interval (1~16), the reference genome will be indexed every Nbp, default: 4. Larger -I uses less memory.
 	       -k  <float>  the cut-off ratio for over-represented kmers, default: 5e-07
 	                    example: -k 1e-6 means the top 0.0001% over-represented kmer will be skipped in alignment
-	       -s  <int>    seed size, default: 16(for WGBS mode), 12(for RRBS mode). min=8, max=16.
+	       -s  <int>    seed size (8~16), default: 16.
 	       -S  <int>    seed for random number generation used in selecting multiple hits
 	                    set identical values to allow reproducible mapping results.
 	                    (default: 0, get seed from system clock, mapping results not resproducible)
@@ -71,15 +68,12 @@ No installation needed for BASALkit.
 	       -A  <str>    3' end adapter sequence to be trimmed, default: none (no trim)
 	       -L  <int>    map the first N bases of the read, the max is 480 (default).
 	
-	  Options for bisulfite sequencing:
-	       -n  [0,1,2]  set mapping strand information. default: 0
-	                    -n 0: only map single-end(SE) reads to forward strands(directional protocol), i.e. BSW(++) and BSC(-+).
-	                          For pair-end(PE), map read#1 to BSW(++) and BSC(-+), map read#2 to BSWC(+-) and BSCC(--).
-	                    -n 1: map SE or PE reads to all 4 strands(non-directional protocol)
-	                    -n 2: only map SE reads to reverse strands(PBAT protocol), i.e. BSWC(+-), BSCC(--).
-	                          For PE, map read#1 to BSWC(+-) and BSCC(--), read#2 to BSW(++) and BSC(-+).
-	       -D  <str>    activate RRBS mode and set restriction enzyme digestion sites. (default: none)
-	                    The digestion site is marked by '-', example: -D C-CGG for MspI digestion site.
+	  Options for mapping strand:
+	       -n  [0,1,2]  -n 0: directional protocol, map single-end(SE) reads to forward strands, i.e. ++(same as OT in bismark) and -+(same as OB in bismark).
+	                          For pair-end(PE), map read#1 to ++ and -+, map read#2 to +-(same as CTOT in bismark) and --(same as CTOB in bismark).
+	                    -n 1: non-directional protocol, map reads to all 4 strands.
+	                    -n 2: PBAT protocol, map SE reads to reverse strands, i.e. +- and --.
+	                          For PE, map read#1 to +- and --, read#2 to ++ and -+.
 	
 	  Options for reporting:
 	       -r  [0,1,2]  how to report repeat hits, 0=none(unique hit/pair); 1=random one; 2=all(slow), default:1.
