@@ -19,7 +19,7 @@ typedef gHit HitArray[MAXHITS+1];
 typedef HitArray HitMatrix[MAXSNPS+1];
 
 //typedef bit64_t SegArray[FIXELEMENT*2];
-typedef bit64_t SegArray[FIXELEMENT*3];//shij
+typedef bit64_t SegArray[FIXELEMENT*3];
 typedef bit32_t SeedArray[16];
 
 extern Param param;
@@ -32,14 +32,14 @@ public:
 	~SingleAlign();
 	void ImportBatchReads(bit32_t n, vector<ReadInf> &a);
 	bit32_t CountNs();
-	void set_RRBS_start(); //by yxi
+	void set_RRBS_start();
 	int TrimLowQual();
 	void ConvertBinaySeq();
-    void ConvertBinarySeq();//shij
+    void ConvertBinarySeq();
     int CountSeeds(RefSeq &ref, int n, bit32_t start);
 
 	inline void CountMismatch(bit64_t *q, bit32_t offset, bit64_t *s);
-    inline void CountMismatch_new(bit64_t *q, bit32_t offset, bit64_t *s);//shij
+    inline void CountMismatch_new(bit64_t *q, bit32_t offset, bit64_t *s);
 	void ClearHits();
 	int RunAlign(RefSeq &ref);
 	int FilterReads();
@@ -48,7 +48,6 @@ public:
 	void Reverse_Seq();
 	void s_OutHit(int chain, int n, bit8_t nspsn, gHit *hit, int insert_size, RefSeq &ref, string &os);
 
-    //by yxi
     void SnpAlign(RefSeq &ref, bit32_t mode);
     int TrimAdapter();
     void SortHits4PE(int n);
@@ -56,9 +55,9 @@ public:
     bit32_t GetTotalSeedLoc(RefSeq &ref, bit32_t start);
     void AdjustSeedStartArray(RefSeq &ref);
     inline bit32_t MismatchPattern0(bit64_t *q, bit64_t *s, bit32_t seglen_offset);
-    inline bit32_t MismatchPattern0_new(bit64_t *q, bit64_t *s, bit32_t seglen_offset);//shij
+    inline bit32_t MismatchPattern0_new(bit64_t *q, bit64_t *s, bit32_t seglen_offset);
     inline bit32_t MismatchPattern1(bit64_t *q, bit64_t *s, bit32_t gap_index, bit32_t seglen_offset);
-    inline bit32_t MismatchPattern1_new(bit64_t *q, bit64_t *s, bit32_t gap_index, bit32_t seglen_offset);//shij
+    inline bit32_t MismatchPattern1_new(bit64_t *q, bit64_t *s, bit32_t gap_index, bit32_t seglen_offset);
     bit32_t GapAlign(RefSeq &ref, bit32_t mode, bit32_t seed_pos);
     //int MatchGap(bit32_t mmi1[], bit32_t mmi2[], bit32_t shift);
     inline bit32_t AddHit(RefSeq &ref, bit32_t w, bit32_t mode);
@@ -84,14 +83,14 @@ public:
     bit32_t N_count, tmp_snp0, n_unique, n_multiple;
 
     //SegArray xseq[2] __attribute__((aligned(64)));
-    SegArray xseq[2] __attribute__((aligned(128)));//shij
+    SegArray xseq[2] __attribute__((aligned(128)));
     bit64_t tmp_seq, tmp_reg;
     bit32_t end_element, end_offset;
 	SeedArray xseeds[2][MAXSNPS+1];
 	bit32_t xseed_array[2][FIXSIZE-SEGLEN], xseedreg_array[2][FIXSIZE-SEGLEN];
 	bit32_t x_cur_n_hit[2][MAXSNPS+1], *_cur_n_hit, *_cur_n_chit;
 	bit32_t xseed_start_array[2][MAXSNPS+1];
-    bit64_t M2, M3, M4;//shij
+    bit64_t M2, M3, M4;
     set<ref_loc_t> *hitset, *ghitset; //, *chitset;
     pair<int,int> xseedindex[2][MAXSNPS+1];
 	bit32_t mm_index[2*MAXGAPS+1][MAXSNPS+1];//position of each mismatch
@@ -128,13 +127,6 @@ inline void SingleAlign::CountMismatch(bit64_t *q, bit32_t offset, bit64_t *s) {
     	for(bit32_t i=1;i<FIXELEMENT;i++) {
     		if((tmp_snp+=param.XM64(((((q[i-1]<<1)<<(63-offset))|q[i]>>offset)&param.XC64(s[i])^s[i])&(((q[FIXELEMENT-1+i]<<1)<<(63-offset))|q[i+FIXELEMENT]>>offset)))>snp_thres) return;
     	}
-    	/*
-        tmp_snp=N_count;
-        for(bit32_t i=0;i<5;i++) {
-        	tmp=(s[i]<<offset)|((s[i+1]>>(63-offset))>>1);
-            if((tmp_snp+=param.XM64((q[i]&param.XC64(tmp)^tmp)&q[i+5]))>snp_thres) return;
-		}
-        */
     }
 }
 
@@ -203,40 +195,7 @@ inline bit32_t SingleAlign::MismatchPattern1(bit64_t *q, bit64_t *s, bit32_t gap
     return map_readlen;
 }
 
-/*
-inline bit32_t SingleAlign::MismatchPattern1(bit64_t *q, bit64_t *s, bit32_t gap_index, bit32_t seglen_offset) {
-    register bit64_t tmp; register bit32_t shift;
-    bit32_t *mm_array; int i,ii, j,jj, ss=0, end_element, right, end_offset, max0, offset=seglen_offset<<1;
-    end_element=(map_readlen+seglen_offset-1)/SEGLEN;
-    right=(map_readlen+seglen_offset-1)%SEGLEN+1;  end_offset=SEGLEN-right;
-    //cout<<"in MMpattern()  gap_index:"<<gap_index<<endl;
-    //cout<<"shift="<<(1-((int)gap_index%2)*2)*((int)gap_index+1)/2<<" offset="<<seglen_offset<<" end_element="<<end_element;
-    //cout<<" end_offset="<<end_offset<<endl;
-    //for(i=0;i<5;i++) disp_bfa64(param.swap_endian64(q[i])); cout<<endl;
-    //for(i=0;i<5;i++) disp_bfa64(param.swap_endian64(s[i])); cout<<endl;
-    mm_array=mm_index[gap_index];
-	for(i=end_element,ii=0;i>=0;i--,ii+=SEGLEN) {
-        tmp_seq=(i>0)*(q[i-(i>0)]<<63-offset)<<1;
-        if(param.nt3) tmp=(tmp_seq|q[i]>>offset)^param.XT64(s[i]);
-		else tmp=(tmp_seq|q[i]>>offset)&param.XC64(s[i])^s[i];
-		shift=seglen_offset*2*(i==0); tmp=(tmp<<shift)>>shift;
-		shift=end_offset*2*(i==end_element); tmp=(tmp>>shift)<<shift;
-		j=ii-(int) end_offset-1;
-		while(tmp) {
-			jj=__builtin_ctzll(tmp)>>1; j+=jj+1;
-			//cout<<"jj="<<jj<<" j="<<j<<" "; param.disp_bin64(tmp);
-			//cout<<" mm_array["<<ss<<"]="<<j<<endl;
-			mm_array[ss++]=j;
-            if(ss>(int)snp_thres-2) return 1;
-            tmp>>=2; tmp>>=(jj<<1);
-        }
-	}
-    for(;ss<=(int)snp_thres-2;ss++) mm_array[ss]=map_readlen;
-    return map_readlen;
-}
-*/
-
-//shij: new matching rule for multiple convert_to_base
+//new matching rule for multiple convert_to_base
 inline void SingleAlign::CountMismatch_new(bit64_t *q, bit32_t offset, bit64_t *s) {
     if(param.nt3) {
     	if((tmp_snp=N_count+param.XM64((((*q)>>offset)^param.XT64(*s))&((q[FIXELEMENT])>>offset)))>snp_thres) return;
@@ -278,7 +237,7 @@ inline void SingleAlign::CountMismatch_new(bit64_t *q, bit32_t offset, bit64_t *
     	}
     }
 }
-//shij: which base in each read is mismatched
+//which base in each read is mismatched
 inline bit32_t SingleAlign::MismatchPattern0_new(bit64_t *q, bit64_t *s, bit32_t offset) {
     register bit64_t tmp;
     bit32_t *mm_array; int i, j,jj, ss=0;
@@ -373,11 +332,10 @@ inline bit32_t SingleAlign::AddHit(RefSeq &ref, bit32_t w, bit32_t mode) {
     if(_ghit.gap_size) {
     	if(!ghitset[_ghit.chr>>1].insert(_ghit.loc).second) return 0;
     }
-    /* shij, 20230427: solving xiyang's problem, ZS will not change with different -v, but now mapping to different strand of same position is reported as multi map but not unique map.
     else {
     	if(!hitset[_ghit.chr>>1].insert(_ghit.loc).second) return 0; //hit already exist
 	}
-    */
+    
 	//cout<<"###HIT### "<<ref.title[_ghit.chr].name<<":"<<_ghit.loc<<" mis:"<<tmp_snp<<" snp_thres:"<<snp_thres<<endl;
     xhits[read_chain_index][w][x_cur_n_hit[read_chain_index][w]++]=_ghit;
     //if(w==mode&&!param.pairend&&param.report_repeat_hits==0) if(_cur_n_hit[w]+_cur_n_chit[w]>1) return 1;

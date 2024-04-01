@@ -72,14 +72,14 @@ def parseCigar(seq, cigar):
     #assert originalLen == index, "String length does not match CIGAR"
     return seq
 
-def strand_bismark2bsmap(XR,XG):
+def strand_bismark2basal(XR,XG):
     if XR == "CT" and XG == "CT": return "++"
     elif XR == "CT" and XG == "GA": return "-+"
     elif XR == "GA" and XG == "CT": return "+-"
     elif XR == "GA" and XG == "GA": return "--"
     else: return ""
 
-def strand_gemBS2bsmap(XB,sam_flag):
+def strand_gemBS2basal(XB,sam_flag):
     # read forward strand
     if (32&sam_flag==32):
         # XB:A:C means read from C2T strand, i.e. original strand
@@ -118,11 +118,11 @@ def Load_One_Read(line,ref,coverage,sam_format,molecule_type,aligner,unique,pair
             XR_index = line.find('XR:Z:');XG_index = line.find('XG:Z:');
             XR_tag=line[XR_index+5:XR_index+7]
             XG_tag=line[XG_index+5:XG_index+7]
-            strand=strand_bismark2bsmap(XR=XR_tag,XG=XG_tag)
+            strand=strand_bismark2basal(XR=XR_tag,XG=XG_tag)
         elif aligner == "gemBS":
             XB_index = line.find('XB:A:')
             XB_tag = line[XB_index+5:XB_index+6]
-            strand=strand_gemBS2bsmap(XB=XB_tag,sam_flag=flag)
+            strand=strand_gemBS2basal(XB=XB_tag,sam_flag=flag)
     else:
         #BSP format
         flag = col[3][:2]
@@ -180,9 +180,11 @@ def Load_One_Read(line,ref,coverage,sam_format,molecule_type,aligner,unique,pair
     if molecule_type=="DNA":
         return (seq, strand[0], cr, pos)
     else:
-        if direction==1:
+        if (16&flag!=16):
+        #if direction==1:
             return (seq, "+", cr, pos)
-        elif direction==2:
+        else:
+        #elif direction==2:
             return (seq, "-", cr, pos)
 
 def Load_Alignment(ifiles,convert_from_base,convert_to_base,conversion_mode,molecule_type,aligner,camda,ref,refmark,coverage,meth0,meth1,depth,meth_ct,depth_ct,sam_path,unique,pair,rm_dup,trim_fillin,chroms,seq_context,handle_SNP,converted_site,mapping_strand):
@@ -769,47 +771,6 @@ def merge_bam(lift_over,fn,fout):
             read.next_reference_start = 0
             fout.write(read)
 
-def merge_tsv(transcriptomeAlignment,output,gtf,unlift,rvstrand):
-    outfile = open(output+"_t2g.tsv", 'w')
-    if unlift == True:unlifted=open(output+'_unlifted.tsv','w')
-
-    transcriptomeAlignment=open(transcriptomeAlignment)
-    for line in transcriptomeAlignment:
-        row = line.strip().split('\t')
-        if row[0]=='':continue
-        if rvstrand==False and row[2]=="-":continue
-        if row[0]=="chr":
-            if unlift == True:unlifted.write(line)
-            continue
-        if "|" in row[0]:
-            row[0]=row[0].split("|")[0]
-        transcript = gtf[row[0]]
-        if transcript != {}:
-            row[0] = transcript['chr']
-            row[2] = transcript['strand']
-            pos_t = int(row[1])
-
-            pos_g = None
-            genome_info_iter = list(transcript["exons"].items())
-            for t, g in genome_info_iter:
-                start_t, end_t = t
-                start_g, end_g = g
-                if start_t <= pos_t <= end_t:
-                    if row[2] == "+":
-                        pos_g = start_g + (pos_t - start_t)
-                    elif row[2] == "-":
-                        pos_g = start_g - (pos_t - start_t)
-                    continue
-            if pos_g is None:
-                if unlift == True:unlifted.write(line)
-            else:
-                row[1]=pos_g
-                outfile.write('\t'.join(map(str,row))+'\n')
-        else:
-            if unlift == True:unlifted.write(line)
-    outfile.close()
-    if unlift == True:unlifted.close()
-
 def calc_pval(treat,ctrl,output_prefix,min_depth,method,fdr_method):
     treat_df=pd.read_csv(treat,sep='\t',compression='infer')
     treat_df=treat_df[treat_df.N_total>=min_depth]
@@ -835,7 +796,8 @@ def calc_pval(treat,ctrl,output_prefix,min_depth,method,fdr_method):
             elif method == "poisson":
                 pvalue = scipy.stats.poisson.sf(N_mod, int(math.ceil(ctrl_CR * N_total)))
             elif method == "fisher":
-                pvalue = scipy.stats.fisher_exact(table=[[N_mod,N_total-N_mod],[N_mod_ctrl,N_total_ctrl-N_mod_ctrl]],alternative='greater')
+                #pvalue = scipy.stats.fisher_exact(table=[[N_mod, N_total-N_mod], [N_mod_ctrl, N_total_ctrl-N_mod_ctrl]], alternative='greater')
+                test_statistic, pvalue = scipy.stats.fisher_exact(table=[[N_mod, N_total-N_mod], [N_mod_ctrl, N_total_ctrl-N_mod_ctrl]], alternative='greater')
                 pvalue = pvalue.pvalue
             pvalue_col.append(pvalue)
             outfile.write('{}\t{}\t{}\t{}\t{:.3f}\t{:.2f}\t{}\t{}\t{:.3f}\t{:.3e}\n'.format(row['chr'],row['pos'],row['strand'],row['context'],row['ratio'],row['eff_coverage'],row['N_mod'],row['N_total'],ctrl_CR,pvalue))
@@ -863,7 +825,8 @@ def calc_pval(treat,ctrl,output_prefix,min_depth,method,fdr_method):
             elif method == "poisson":
                 pvalue = scipy.stats.poisson.sf(N_mod, int(math.ceil(ctrl_CR * N_total)))
             elif method == "fisher":
-                pvalue = scipy.stats.fisher_exact(table=[[N_mod,N_total-N_mod],[N_mod_ctrl,N_total_ctrl-N_mod_ctrl]],alternative='greater')
+                #pvalue = scipy.stats.fisher_exact(table=[[N_mod, N_total-N_mod], [N_mod_ctrl, N_total_ctrl-N_mod_ctrl]], alternative='greater')
+                test_statistic, pvalue = scipy.stats.fisher_exact(table=[[N_mod, N_total-N_mod], [N_mod_ctrl, N_total_ctrl-N_mod_ctrl]], alternative='greater')
                 pvalue = pvalue.pvalue
             pvalue_col.append(pvalue)
             outfile.write('{}\t{}\t{}\t{}\t{:.3f}\t{:.2f}\t{}\t{}\t{}\t{}\t{:.3f}\t{:.3e}\n'.format(row_treat['chr'],row_treat['pos'],row_treat['strand'],row_treat['context'],row_treat['ratio'],row_treat['eff_coverage'],row_treat['N_mod'],row_treat['N_total'],N_mod_ctrl,N_total_ctrl,ctrl_CR,pvalue))
@@ -889,29 +852,6 @@ def read_methy_files(ifile, cols=[0,1,2,6,7]):
     meth_file.drop(['pos'], axis=1, inplace=True)
     return meth_file
 
-def merge_strand_each_chr(df):
-    df_p = df[df['strand']=='+']
-    df_n = df[df['strand']=='-']
-    df_n.index =  df_n.index.values - 1
-    merge_index = np.sort(np.unique(np.append(df_n.index.values, df_p.index.values)))
-    df_merge = pd.DataFrame(np.zeros(shape=[len(merge_index),2]), index=merge_index)
-    df_merge.loc[df_p.index,:] = df_merge.loc[df_p.index,:] + df_p.loc[:,['modified','total']].values
-    df_merge.loc[df_n.index,:] = df_merge.loc[df_n.index,:] + df_n.loc[:,['modified','total']].values
-    df_merge.columns = ['modified','total']
-    df_merge = df_merge.loc[0:,:] # remove the minus index pos -1
-    return df_merge
-
-def merge_strand(df):
-    chs = df["chr"].unique().tolist()
-    df_merge = pd.DataFrame()
-    for ch in chs:
-        chr_sub = df[df["chr"] == ch]
-        if chr_sub.shape[0] > 0:
-            chr_sub = merge_strand_each_chr(chr_sub)
-            chr_sub['chr']=pd.Series([ch] * chr_sub.shape[0], index=chr_sub.index)
-            df_merge=pd.concat([df_merge, chr_sub])#df_merge=df_merge.append(chr_sub)
-    return df_merge
-
 def Region_weighted_Ratio(ratio_sub,start=0,end=0):
     #ratio_sub: ratio df of one chrom
     #region_meth=ratio_sub.loc[start:end,:]
@@ -926,253 +866,3 @@ def Region_weighted_Ratio(ratio_sub,start=0,end=0):
         region_methratio=np.nan
         total_C=np.nan
     return [region_methratio,count_C,total_C]
-
-def bam2epiallele(ifiles,convert_from_base,convert_to_base,conversion_mode,aligner,ref,refmark,coverage,sam_path,unique,pair,rm_dup,trim_fillin,seq_context,chroms,output,read_pos):
-    pipes = []
-    for ifile in ifiles:
-        if ifile[-4:].upper() == '.SAM': sam_format, fin = True, open(ifile)
-        elif ifile[-4:].upper() == '.BAM': sam_format, fin = True, os.popen('%ssamtools view %s' % (sam_path, ifile))
-        elif ifile[-5:].upper() == '.CRAM': sam_format, fin = True, os.popen('%ssamtools view %s' % (sam_path, ifile))
-        else: sam_format, fin = False, open(ifile)
-        pipes.append((ifile,sam_format,fin))
-    complement={"A":"T","C":"G","G":"C","T":"A","-":"-"}
-    convert_to_base_cp=[complement[i] for i in convert_to_base]
-    if conversion_mode == "U":# BS mode
-        conversion_rule = {'+': (convert_from_base,[convert_from_base],convert_to_base,complement[convert_from_base],[complement[convert_from_base]],convert_to_base_cp), '-': (complement[convert_from_base],[complement[convert_from_base]],convert_to_base_cp,convert_from_base,[convert_from_base],convert_to_base)}
-    elif conversion_mode == "M":# TAPS mode
-        conversion_rule = {'+': (convert_from_base,convert_to_base,[convert_from_base],complement[convert_from_base],convert_to_base_cp,[complement[convert_from_base]]), '-': (complement[convert_from_base],convert_to_base_cp,[complement[convert_from_base]],convert_from_base,convert_to_base,[convert_from_base])}
-
-    nmap = 0
-    fo_epa = open(output+".unsrt", 'w')
-    for ifile, sam_format, fin in pipes:
-        disp('Load Alignment: {}'.format(ifile))
-        nline = 0; n_NotMatch = 0;
-        for line in fin:
-            nline += 1
-            map_info = Load_One_Read(line,ref,coverage,sam_format,aligner,unique,pair,rm_dup,trim_fillin,chroms)
-            if len(map_info) == 0: continue
-            seq, strand, cr, pos = map_info
-            pos2 = pos + len(seq)
-            nmap += 1
-            raw, modified, unmodified = conversion_rule[strand][0:3]
-            refseq, refmarkcr = ref[cr], {}
-            if refmark!={}:refmark=refmark[cr]
-            indexes=[]
-            for index in re.finditer(raw,refseq[pos:pos2]):
-                index0=index.span()[0]
-                indexes.append(index0)
-            MU_pos_seq={};
-            if len(indexes)>0:
-                for index in indexes:
-                    if refmarkcr=={} or (refmarkcr[index+pos] in seq_context):
-                        # report M/U(modified/unmodified) string
-                        if seq[index] in modified:
-                            MU_pos_seq[index+pos]="M"
-                        elif seq[index] in unmodified:
-                            MU_pos_seq[index+pos]="U"
-            if MU_pos_seq=={}:
-                n_NotMatch += 1
-            else:
-                MU_pos=sorted(MU_pos_seq);MU_seq=[];
-                for key in MU_pos:
-                    MU_seq.append(MU_pos_seq[key])
-                MU_pos=[x+1 for x in MU_pos]# 1-based
-                MU_start=MU_pos[0];MU_end=MU_pos[-1];
-                # report absolute position of each nucleotide
-                if read_pos:
-                    fo_epa.write("\t".join([cr,str(pos),str(pos2),strand,"".join(MU_seq), ";".join(map(str,MU_pos))])+"\n")
-                else:
-                    fo_epa.write("\t".join([cr,str(MU_start),str(MU_end),strand,"".join(MU_seq), ";".join(map(str,MU_pos))])+"\n")
-                # report relative position to the first nucleotide of each nucleotide, not convenient for downstream analysis
-                #dist_to_CT1=[x-MU_start for x in MU_pos];fo_epa.write("\t".join([cr,str(MU_start),str(MU_end),strand,"".join(MU_seq), ";".join(map(str,dist_to_CT1))])+"\n")
-        fin.close()
-    fo_epa.close()
-    disp('Read {} lines'.format(nline))
-    disp('Total {} valid mappings, {} of them donot cover convert-from base({}) in requested context'.format(nmap,n_NotMatch,convert_from_base))
-
-def PDR(MU_str=[]):
-    x=dict(Counter(MU_str))
-    x1=0
-    for pat in x.keys():
-        if "M" in pat and "U" in pat:
-            x1+=x[pat]
-    return x1*1.0/len(MU_str)
-
-def Entropy(MU_str=[]):
-    x=dict(Counter(MU_str))
-    x1=0
-    for pat in x.keys():
-        p=x[pat]*1.0/len(MU_str)
-        x1+=p*np.log2(p)
-    return 0-x1
-
-def Epipolymorphism(MU_str=[]):
-    x=dict(Counter(MU_str))
-    x1=0
-    for pat in x.keys():
-        p=x[pat]*1.0/len(MU_str)
-        x1+=p*p
-    return 1-x1
-
-def MHL(MU_str=[]):
-    x0=0;x1=0;
-    for i in range(1,len(MU_str[0])):
-        x1=x1+i
-        s0=list(map(lambda x: x[0:i], MU_str))
-        x0=x0+i*s0.count("M" * i)*1.0/len(MU_str)
-    return x0/x1
-
-def epiallele2score(Bed,region_i,epiallele,usestrand=True,min_depth=4,window_size=4,window_depth=1,nucleotide=False):
-    region0=Bed.iloc[region_i]
-    chr=region0['chr'];
-    start=int(region0['start']);
-    end=int(region0['end']);
-    epa_col = ["start","end","strand","MU_seq","MU_pos","read_count"]
-    with os.popen("tabix --verbosity 1 {} {}:{}-{}".format(epiallele,chr,start,end)) as file_in:
-        epa_df=pd.read_csv(file_in,sep='\t',header=None,usecols=[1,2,3,4,5,6],names=epa_col)
-    if usestrand==True:
-        strand=region0['strand']
-        epa_df=epa_df[epa_df['strand']==strand]
-    else:
-        strand=""
-
-    output_lines=[]
-    line0=[chr,start,end,strand,0];
-    # 8 types of quantifications
-    line0.extend([np.nan] * 8);
-    # For single base, the weighted and unweighted CAMDA values are the same.
-    if nucleotide==True:del(line0[-1])
-    if strand=="":del(line0[3])
-    # for region, report NA value if no read cover
-    if epa_df.shape[0] == 0:
-        if nucleotide==False:output_lines.append('\t'.join(map(str,line0))+'\n')
-        return output_lines
-    read_count_total=epa_df['read_count'].sum()
-
-    if nucleotide==False:
-        region_MUX=[];region_PDR=[];region_Entropy=[];region_Epipolymorphism=[];region_MHL=[]
-
-    # If -s not specified, epiallele pattern on reverse strand is converted to forward(pos-1) strand position, and combined with forward strand epialleles.
-    epa_forward=epa_df[epa_df['strand']=="+"]
-    if epa_forward.shape[0] > 0:
-        allc_forward=list(map(int,map(float,set(";".join(map(str,list(epa_forward['MU_pos']))).split(";")))))
-    else:allc_forward=[]
-    epa_reverse=epa_df[epa_df['strand']=="-"]
-    if epa_reverse.shape[0] > 0:
-        allc_reverse=list(map(int,map(float,set(";".join(map(str,list(epa_reverse['MU_pos']))).split(";")))))
-        allc_reverse= [ x-1 for x in allc_reverse ]
-    else:allc_reverse=[]
-    allc=list(set(allc_forward+allc_reverse));allc.sort();
-    allc=[val for idx, val in enumerate(allc) if val >= start and val <= end]
-    del allc_forward, allc_reverse, epa_forward, epa_reverse
-
-    window_dict={};
-    if len(allc)>=window_size:
-        window_count=len(allc)-window_size+1
-        for w in range(0,window_count):window_dict[w]=[]
-    if nucleotide==True:
-        nucleotide_MUX={}
-        for c in range(0,len(allc)):nucleotide_MUX[c]=""
-
-    for row in epa_df.iterrows():
-        MU_start=int(row[1]['start']);
-        MU_end=int(row[1]['end']);
-        MU_strand=row[1]['strand'];
-        MU_seq=row[1]['MU_seq'];
-        MU_pos=str(row[1]['MU_pos']);
-        MU_pos=list(map(int,map(float,MU_pos.split(";"))));MU_pos.sort();
-        read_count=int(row[1]['read_count'])
-        # merge +/- strand
-        if MU_strand=="-":
-            MU_start-=1;MU_end-=1;MU_pos=[x-1 for x in MU_pos];
-        # for window-based scores: entropy, ...
-        if len(allc)>=window_size:
-            for w in range(0,window_count):
-                start_w=allc[w]
-                end_w=allc[w+window_size-1]
-                pos0 = [idx for idx, val in enumerate(MU_pos) if val >= start_w and val <= end_w]
-                if len(pos0)==window_size:
-                    seq0=MU_seq[min(pos0):(max(pos0)+1)]
-                    window_dict[w].extend([seq0] * read_count)
-        # X: concurrence cytosine
-        if "M" in MU_seq and "U" in MU_seq:
-            seq0=MU_seq.replace("U","X")
-        else:
-            seq0=MU_seq;
-        if MU_start < start or MU_end > end:
-            pos0 = [idx for idx, val in enumerate(MU_pos) if val >= start and val <= end]
-            if len(pos0)>0:
-                seq0=seq0[min(pos0):(max(pos0)+1)]
-                pos0=MU_pos[min(pos0):(max(pos0)+1)]
-            else:seq0="";pos=[]
-        else:pos0=MU_pos
-        if seq0!="":
-            if nucleotide==False:
-                region_MUX.extend([seq0] * read_count)
-            else:
-                for i in range(0,len(pos0)):
-                    nucleotide_MUX[allc.index(pos0[i])] += seq0[i] * read_count
-
-    if nucleotide==False:
-        if window_dict!={}:
-            for w in range(0,window_count):
-                if len(window_dict[w])>=window_depth:
-                    region_PDR.append(PDR(window_dict[w]))
-                    region_Entropy.append(Entropy(window_dict[w]))
-                    region_Epipolymorphism.append(Epipolymorphism(window_dict[w]))
-                    region_MHL.append(MHL(window_dict[w]))
-    else:
-        for c in range(0,len(allc)):
-            MUX=nucleotide_MUX[c]
-            if len(MUX)>=min_depth:
-                AvgMod=MUX.count("M")*1.0/len(MUX)
-                CAMDA_w=MUX.count("X")*1.0/len(MUX)
-                CHALM=1-MUX.count("U")*1.0/len(MUX)
-                nucleotide_PDR=[];nucleotide_Entropy=[];nucleotide_Epipolymorphism=[];nucleotide_MHL=[]
-                c1=max(c-window_size+1,0);c2=min(c,len(allc)-window_size);
-                for i in range(c1,c2+1):
-                    if len(window_dict[i])>=window_depth:
-                        nucleotide_PDR.append(PDR(window_dict[i]))
-                        nucleotide_Entropy.append(Entropy(window_dict[i]))
-                        nucleotide_Epipolymorphism.append(Epipolymorphism(window_dict[i]))
-                        nucleotide_MHL.append(MHL(window_dict[i]))
-                v1=v2=v3=v4=np.nan
-                if nucleotide_PDR!=[]:v1=np.mean(nucleotide_PDR)
-                if nucleotide_Entropy!=[]:v2=np.mean(nucleotide_Entropy)
-                if nucleotide_Epipolymorphism!=[]:v3=np.mean(nucleotide_Epipolymorphism)
-                if nucleotide_MHL!=[]:v4=np.mean(nucleotide_MHL)
-
-                raw_pos=allc[c]
-                if strand=="":
-                    output_lines.append('{}\t{}\t{}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\n'.format(chr,raw_pos,len(MUX),AvgMod,CAMDA_w,CHALM,v1,v2,v3,v4))
-                else:
-                    if strand=="-":raw_pos=raw_pos+1
-                    output_lines.append('{}\t{}\t{}\t{}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\n'.format(chr,raw_pos,strand,len(MUX),AvgMod,CAMDA_w,CHALM,v1,v2,v3,v4))
-
-    if nucleotide==False:
-        # region AvgMod/CAMDA
-        AvgMod=CAMDA_w=CAMDA_unw=CHALM=np.nan
-        if region_MUX!=[]:
-            M_frag=U_frag=X_frag=0
-            for frag0 in region_MUX:
-                M_frag+=len(re.findall("M+", frag0))
-                U_frag+=len(re.findall("U+", frag0))
-                X_frag+=len(re.findall("X+", frag0))
-            CAMDA_unw=X_frag*1.0/(M_frag+U_frag+X_frag)
-            region_MUX="".join(region_MUX)
-            AvgMod=region_MUX.count("M")*1.0/len(region_MUX)
-            CAMDA_w=region_MUX.count("X")*1.0/len(region_MUX)
-            CHALM=1-region_MUX.count("U")*1.0/len(region_MUX)
-        # region window-based scores
-        v1=v2=v3=v4=np.nan
-        if region_PDR!=[]:v1=np.mean(region_PDR)
-        if region_Entropy!=[]:v2=np.mean(region_Entropy)
-        if region_Epipolymorphism!=[]:v3=np.mean(region_Epipolymorphism)
-        if region_MHL!=[]:v4=np.mean(region_MHL)
-
-        if strand=="":
-            output_lines.append('{}\t{}\t{}\t{}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\n'.format(chr,start,end,read_count_total,AvgMod,CAMDA_w,CAMDA_unw,CHALM,v1,v2,v3,v4))
-        else:
-            output_lines.append('{}\t{}\t{}\t{}\t{}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\t{:.3f}\n'.format(chr,start,end,strand,read_count_total,AvgMod,CAMDA_w,CAMDA_unw,CHALM,v1,v2,v3,v4))
-
-    return output_lines

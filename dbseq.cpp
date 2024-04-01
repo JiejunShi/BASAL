@@ -84,14 +84,6 @@ void RefSeq::BinSeq(OneBfa &a) {
 
 void RefSeq::cBinSeq(OneBfa &a) {
         a.n=(_length+(SEGLEN-1))/SEGLEN+BINSEQPAD;   //SEGLENbp, bit(SEGLEN*2) for each element. put 2 extra elements at the 3'end to invoid overflow
-/*	int t=a.n*SEGLEN-_length;
-	cout << _length<< " "<<a.n << " t "<<t<<endl; 
-	if(t) {
-		string ts(t, 'N');
-		if(_seq.size()<_length+t) _seq.resize(_length+t);
-		copy(ts.begin(), ts.end(), _seq.begin()+_length);
-	}
-*/
 	a.s = new bit64_t[a.n];
 	string::iterator p=_seq.begin()+a.n*SEGLEN-1;
 	string::iterator tmp;
@@ -107,7 +99,6 @@ void RefSeq::cBinSeq(OneBfa &a) {
 	}
 	//cout <<endl;
 }
-                                                                                                                                                                                                                                                        
 
 void RefSeq::UnmaskRegion() {
 	Block b, cb;
@@ -127,7 +118,6 @@ void RefSeq::UnmaskRegion() {
 			_blocks[_blocks.size()-1].end=b.end;
 		else {
 			_blocks.push_back(b);
-			//added by yxi
 			cb.begin=total_len-b.end;
 			cb.end=total_len-b.begin;
 			_blocks.push_back(cb);
@@ -212,9 +202,9 @@ void RefSeq::Run_ConvertBinseq(ifstream &fin, igzstream &gzfin) {
 		_count++;
 		total_num++;
 		sum_length+=_length;
-//		cout<<r.size<<endl;
+		//cout<<r.size<<endl;
 		
-		//added by yxi, RC reference seq
+		//RC reference seq
 		title.push_back(r);
 		OneBfa ca;
 		cBinSeq(ca);
@@ -424,18 +414,6 @@ void RefSeq::FillIndex() {
 		t_FillIndex(0);
 		t_FillIndex(1);
     }
-
-    //_a=0; _e=0; for(z=index,i=0; i<total_kmers; z++,i++) if(z->n1) {_a+=z->n1; _e++;} cout<<"index total:"<<_a<<" keys:"<<_e<<endl;
-    //_a=0; _e=0; for(z=cindex, i=0; i<total_kmers; z++,i++) if(z->n1) {_a+=z->n1; _e++;} cout<<"cindex total:"<<_a<<" keys:"<<_e<<endl;
-    /*
-
-    for(ref_id_t chr=0;chr<_count;chr++){
-        cout<<"chr"<<(int)chr<<endl;
-        for(set<ref_loc_t>::iterator it=CCGG_index[chr].begin();it!=CCGG_index[chr].end();it++) cout<<" "<<*it; cout<<endl;
-        for(set<ref_loc_t>::iterator it=CCGG_cindex[chr].begin();it!=CCGG_cindex[chr].end();it++) cout<<" "<<*it; cout<<endl;
-    }
-    */
-
 }
 
 void RefSeq::t_FillIndex(bit32_t ref_chain) {
@@ -473,19 +451,6 @@ void RefSeq::FinishIndex() {
     bit32_t i;
     if(param.RRBS_flag) 
         for(i=0;i<param.max_seedseg_num;i++) CCGG_index[i].clear();
-/*
-    for(i=0;i<total_kmers;i++) {
-        cout<<"seed:"<<i<<" total:"<<index2[i][0]<<endl;
-        for(j=1; j<=index2[i][0]; j++) cout<<index2[i][j]<<" "; cout<<endl;
-        //for(k=0;k<4;k++) {
-        while(true){
-            cout<<"c"<<(index2[i][j]>>24)<<":"<<(index2[i][j]&0xffffff)<<" ";
-            if((index2[i][j]&0xffffff)==index2[i][0]) break;
-            j++;
-        }
-        cout<<endl;
-    }
-*/
 }
 
 pair<ref_loc_t,bit32_t> RefSeq::CCGG_seglen(ref_id_t chr, ref_loc_t pos, int readlen) {

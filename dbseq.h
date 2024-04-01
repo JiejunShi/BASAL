@@ -27,7 +27,6 @@ struct RefTitle
 {
 	string name;
 	bit32_t size;
-	//added by yxi
 	bit32_t rc_offset;
 };
 struct Block
@@ -109,7 +108,6 @@ public:
 	vector<Block> _blocks;  //unmasked ref region
 	//map<shortHit,bit32_t,shorthitcompclass> ccgg_seglen;
 
-    //by yxi
     //int max_seedseg_num;
 	vector<vector<ref_loc_t> > CCGG_index[50];
 	vector<vector<pair<ref_loc_t,bit32_t> > > CCGG_sites;

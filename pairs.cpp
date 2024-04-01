@@ -146,7 +146,7 @@ int PairAlign::RunAlign(RefSeq &ref)
 	if((param.readnt_cnt==1)&&(param.readnts[0]!='-')){
         _sa.ConvertBinaySeq();
         _sb.ConvertBinaySeq();
-    }else{//shij
+    }else{
         _sa.ConvertBinarySeq();
 	    _sb.ConvertBinarySeq();
     }
@@ -173,21 +173,6 @@ int PairAlign::RunAlign(RefSeq &ref)
         if(n>0) return 1;
 	}
 
-/*
-    PairHit pp;
-    cout<<_sa._pread->name.c_str()<<endl;
-    for(i=0; i<=param.max_snp_num*2; i++) if(_cur_n_hits[i]) {
-        cout<<"mis:"<<i<<"  pairs:"<<_cur_n_hits[i]<<endl;
-        for(j=0;j<_cur_n_hits[i];j++) {
-            pp=pairhits[i][j];
-            cout<<ref.title[pp.a.chr].name<<":"<<pp.a.loc+1<<":"<<chain_flag[pp.a.chr%2]<<chain_flag[pp.chain]<<endl;
-            cout<<ref.title[pp.b.chr].name<<":"<<pp.b.loc+1<<":"<<chain_flag[pp.b.chr%2]<<chain_flag[!pp.chain]<<endl;
-        }
-    }
-    return 1;
-*/
-
-    //cout <<"nothing\n";
 	return n;		
 }
 
@@ -326,29 +311,6 @@ void PairAlign::s_OutHitPair(PairHit pp, int n, RefSeq &ref, string &os) {
 
     //if fraglen < readlen then we need to remove adapter sequence
     rev_seq_a=pp.chain^(pp.a.chr%2); rev_seq_b=(!pp.chain)^(pp.b.chr%2);
-    /*
-    if(pp.insert<_sa.map_readlen){ 
-        if(pp.chain^(pp.a.chr%2)) {
-            pp.a.loc+=_sa.map_readlen-pp.insert;
-            if(pp.a.gap_pos>_sa.map_readlen-pp.insert) pp.a.gap_pos-=_sa.map_readlen-pp.insert;
-            else pp.a.gap_size=0;
-        }
-        _sa._pread->seq.erase(pp.insert);
-        if(_sa._pread->qual.size()>pp.insert) _sa._pread->qual.erase(pp.insert);
-        _sa.map_readlen=_sa._pread->seq.size();
-    }
-
-    if(pp.insert<_sb.map_readlen){
-        if((!pp.chain)^(pp.b.chr%2)) {
-            pp.b.loc+=_sb._pread->seq.size()-pp.insert;
-            if(pp.b.gap_pos>_sb.map_readlen-pp.insert) pp.b.gap_pos-=_sb.map_readlen-pp.insert;
-            else pp.b.gap_size=0;
-        }
-        _sb._pread->seq.erase(pp.insert);
-        if(_sb._pread->qual.size()>pp.insert) _sb._pread->qual.erase(pp.insert);
-        _sb.map_readlen=_sb._pread->seq.size();
-    }
-    */
 
     if(param.out_sam) {
         flag=0x3;  //read_a
@@ -521,41 +483,6 @@ void PairAlign::s_OutHitUnpair(int readinpair, int chain_a, int chain_b, int ma,
     }
     else _stmp->s_OutHit(chain_a, ma, na, &ha, 0, ref, os);
 }
-
-
-/*    
-int PairAlign::TrimAdapter(){
-    int i,j,k,l,h, ma,mb,ma0, mb0,pos;
-    char tmpnt;
-    for(pos=_sa._pread->seq.size()-4;pos>=param.seed_size;pos--){
-        for(i=0; i<param.n_adapter; i++){
-            ma0=mb0=0;
-            for(k=0; k<param.adapter[i].size(); k++) {
-                if((l=pos+k)>=_sa._pread->seq.size()) break;
-                if((tmpnt=param.adapter[i][k])=='N') continue;
-                if(_sa._pread->seq[l]!=tmpnt&&_sa._pread->seq[l]!='N') ma0++;
-                if(_sb._pread->seq[l]!=tmpnt&&_sb._pread->seq[l]!='N') mb0++;
-            }
-            if((2*k+6)<(ma0+mb0)*5) continue;
-            for(j=0;j<4;j++) {
-                ma=ma0; mb=mb0;
-                for(h=0,l=pos-3; h<3; h++,l++) {
-                    if(_sa._pread->seq[l]!=param.adapter_anchor[j][h]&&_sa._pread->seq[l]!='N') ma++;
-                    if(_sb._pread->seq[l]!=param.adapter_anchor[j][h]&&_sb._pread->seq[l]!='N') mb++;
-                }
-                if((2*k+6)>=(ma+mb)*5) {
-                    _sa._pread->seq.erase(pos); 
-                    _sa._pread->qual.erase(pos);
-                    _sb._pread->seq.erase(pos); 
-                    _sb._pread->qual.erase(pos);
-                    return 1;
-                }
-            }
-        }
-    }
-    return 0;
-}
-*/
 
 void PairAlign::FixPairReadName() { //make sure the name of the two reads are same
     //cout<<_sa._pread->name<<endl;

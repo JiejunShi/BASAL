@@ -3,7 +3,7 @@
 extern bit8_t alphabet[];
 extern bit8_t reg_alphabet[];
 extern bit8_t rev_alphabet[];
-extern bit8_t alphabet_Mread[];extern bit8_t rev_alphabet_Mread[];//shij
+extern bit8_t alphabet_Mread[];extern bit8_t rev_alphabet_Mread[];
 extern char rev_char[];
 extern char nt_code[];
 extern char revnt_code[];
@@ -22,25 +22,14 @@ SingleAlign::SingleAlign() {
 
 	total_candidates=total_reads=total_seeds=0;
     if(!param.pairend) _str_align.reserve(BatchNum*400);
-	//chitset= new set<ref_loc_t>[param.total_ref_seq];
 	rand_rSeed=getpid()*time(NULL);
 	N_count=0;
-	//for(int i=0;i<256;i++) nothing[i]=0;
-	//cout<<"cache line 1:"<<&tmp_snp<<endl;
-	//cout<<"cache line 2:"<<&_hit<<endl;
 }
 
 SingleAlign::~SingleAlign() {
 	delete [] hitset;
 	delete [] ghitset;
     delete [] xhits;
-    //for(int i=0;i<60;i++) cout<<i<<"\t"<<nothing[i+100]<<"\t"<<nothing[i]<<"\t"<<(nothing[i+100]/(nothing[i]+1))<<endl; cout<<endl;
-	//delete [] chitset;
-
-    //cerr<<"Total candidates:"<<total_candidates<<" \ttotal_seeds:"<<total_seeds<<" \ttotal_reads:"<<total_reads<<endl;
-    //cerr<<total_candidates/total_reads<<"candidates/reads\n";
-    //cerr<<total_seeds/total_reads<<"seeds/reads\n";
-    //cerr<<total_candidates/total_seeds<<"candidates/seeds\n";
 }
 
 void SingleAlign::ImportBatchReads(bit32_t n, vector<ReadInf> &a) {
@@ -90,9 +79,7 @@ int SingleAlign::TrimLowQual() { //return 0: normal trim, 1: read too short afte
 void SingleAlign::ConvertBinaySeq() {
 	bit32_t i, h, s, sb; bit64_t _a, _b;
 	Reverse_Seq();
-	// shij: support PBAT(-n 2)
-	// xflag_chain[0]=param.chains||(_pread->readset<2);
-	// xflag_chain[1]=param.chains||(_pread->readset==2);
+	// support PBAT(-n 2)
 	xflag_chain[0]=(param.chains==1)||((param.chains<=1)==(_pread->readset<2));
 	xflag_chain[1]=(param.chains==1)||((param.chains<=1)==(_pread->readset==2));
 
@@ -126,14 +113,7 @@ void SingleAlign::ConvertBinaySeq() {
     		}
     	}
 	}
-/*
-	int ii;
-	for(i=0; i!=SEGLEN; i++) {
-		cout<<"bin seq: "<<i<<endl;
-		for(ii=0;ii<FIXELEMENT;ii++) disp_bfa(bseq[i][ii]); cout<<endl;
-		for(;ii<FIXELEMENT*2;ii++) disp_bfa(bseq[i][ii]); cout<<endl;
-	}
-*/
+
     if(xflag_chain[1]) { //reverse seq
     	h=_a=_b=s=sb=0;
     	for(_sq=_pread->seq.rbegin(),i=1; _sq!=_pread->seq.rend(); _sq++,i++) {
@@ -169,13 +149,11 @@ void SingleAlign::ConvertBinaySeq() {
     //    {cout<<"i="<<i<<" "; disp_bfa(param.map3to4(xseed_array[h][i])); disp_bfa(xseedreg_array[h][i]); cout<<endl;}
 }
 
-//shij, convert read to bit(alphabet/rev_alphabet) and mask read(alphabet_Mread)
+//convert read to bit(alphabet/rev_alphabet) and mask read(alphabet_Mread)
 void SingleAlign::ConvertBinarySeq(){
     bit32_t i, h, s, sb; bit64_t _a, _b, _c;
 	Reverse_Seq();
-	// shij: support PBAT(-n 2)
-	// xflag_chain[0]=param.chains||(_pread->readset<2);
-	// xflag_chain[1]=param.chains||(_pread->readset==2);
+	// support PBAT(-n 2)
 	xflag_chain[0]=(param.chains==1)||((param.chains<=1)==(_pread->readset<2));
 	xflag_chain[1]=(param.chains==1)||((param.chains<=1)==(_pread->readset==2));
 
@@ -274,7 +252,7 @@ void SingleAlign::SnpAlign(RefSeq &ref, bit32_t mode) {
    	    		//cout<<" j="<<j<<" chr"<<(int)_hit.chr<<":"<<_hit.loc<<endl;
                 if((param.readnt_cnt==1)&&(param.readnts[0]!='-')){
                     CountMismatch(xseq[read_chain_index], (_hit.loc%SEGLEN)<<1, ref.bfa[_hit.chr].s+_hit.loc/SEGLEN);
-                }else{//shij
+                }else{
                     CountMismatch_new(xseq[read_chain_index], (_hit.loc%SEGLEN)<<1, ref.bfa[_hit.chr].s+_hit.loc/SEGLEN);
                 }
    	    		//cout<<" mis:"<<tmp_snp<<endl;
@@ -310,10 +288,10 @@ void SingleAlign::SnpAlign(RefSeq &ref, bit32_t mode) {
         		h=param.profile[modeindex][i]+xseed_start_array[read_chain_index][modeindex]-i;
         		//cout<<" h="<<h<<" "<<xseed_start_array[read_chain_index][modeindex]<<" "<<endl;;
                 jj=myrand(_pread->index,&rand_rSeed)%m; //jj1=(jj+PREFETCH_LOOP)%m;
-		int mc1=(int)mc-(int)PREFETCH_LOOP;
+		        int mc1=(int)mc-(int)PREFETCH_LOOP;
                 _refloc0=ref.index2[_seed].loc1;
         		for(j=0; j!=m; ++j,++jj) {
-			jj-=(jj>=m)*m;
+			        jj-=(jj>=m)*m;
                     //jj1=(jj+PREFETCH_LOOP)%m;
 					__builtin_prefetch(ref.xref[(bit32_t)((int)mc1-(int)jj)>>31]+(*(_refloc0+jj+PREFETCH_LOOP)-h)/SEGLEN,0,0);
         			_hit.loc=(*(_refloc0+jj))-h;
@@ -321,7 +299,7 @@ void SingleAlign::SnpAlign(RefSeq &ref, bit32_t mode) {
                     //gHit hh=int2hit(ref,_hit,0,0); cout<<"j= "<<j<<"  "<<ref.title[hh.chr].name<<":"<<hh.loc<<endl;
                     if((param.readnt_cnt==1)&&(param.readnts[0]!='-')){
                         CountMismatch(xseq[read_chain_index], (_hit.loc%SEGLEN)<<1, ref.xref[ref_chain_index]+_hit.loc/SEGLEN);
-                    }else{//shij
+                    }else{
 					    CountMismatch_new(xseq[read_chain_index], (_hit.loc%SEGLEN)<<1, ref.xref[ref_chain_index]+_hit.loc/SEGLEN);
                     }
 					//cout<<"offset:"<<_hit.loc%SEGLEN<<" mis:"<<tmp_snp<<" snp_thres:"<<snp_thres<<endl;
@@ -372,7 +350,7 @@ bit32_t SingleAlign::GapAlign(RefSeq &ref, bit32_t mode, bit32_t seed_pos) {
     //cout<<_pread->name<<"  "<<_pread->seq<<endl;
     //gHit hh=int2hit(ref,_hit,0,0); cout<<ref.title[hh.chr].name.c_str()<<":"<<hh.loc<<endl;
     bit64_t *refseq; bit32_t  i, j, gap_snp, gap_pos, m2, rl, *mmi1, *mmi2;
-    if(snp_thres<2) return 0;
+    if(snp_thres<2) return 0;//-g not in -v
     if(param.RRBS_flag) {
         ref_chain_index=_hit.chr&1;
         ghit_loc=ref.ref_anchor[_hit.chr/2]+_hit.loc;
@@ -385,7 +363,7 @@ bit32_t SingleAlign::GapAlign(RefSeq &ref, bit32_t mode, bit32_t seed_pos) {
     //cout<<"ghit_loc="<<ghit_loc<<" "<<(int)ghit_loc<<" readlen="<<readlen<<" refseq="<<refseq<<endl;
     if((param.readnt_cnt==1)&&(param.readnts[0]!='-')){
         if(MismatchPattern0(xseq[read_chain_index], refseq+ghit_loc/SEGLEN, (ghit_loc%SEGLEN)<<1)<seed_pos+param.seed_size) return 0;
-    }else{//shij
+    }else{
         if(MismatchPattern0_new(xseq[read_chain_index], refseq+ghit_loc/SEGLEN, (ghit_loc%SEGLEN)<<1)<seed_pos+param.seed_size) return 0;
     }
     mmi1=mm_index[0];//mismatch position with no gap
@@ -393,74 +371,42 @@ bit32_t SingleAlign::GapAlign(RefSeq &ref, bit32_t mode, bit32_t seed_pos) {
     for(tt=1;tt<=param.gap*2;tt++) {
         //cout<<"tt="<<tt<<" t="<<t<<endl;
         t=(tt+1)/2; shift=(1-(tt%2)*2)*t; shift1=shift*(shift<0);
-        if(snp_thres<1+t) break;
+        if(snp_thres<1+t) break;//-g not in -v
         ghit_loc1=ghit_loc+shift;
         if((param.readnt_cnt==1)&&(param.readnts[0]!='-')){
             MismatchPattern1(xseq[read_chain_index], refseq+ghit_loc1/SEGLEN, tt, (ghit_loc1%SEGLEN)<<1);
-        }else{//shij
+        }else{
             MismatchPattern1_new(xseq[read_chain_index], refseq+ghit_loc1/SEGLEN, tt, (ghit_loc1%SEGLEN)<<1);
         }
 		//cout<<"shift="<<shift; for(i=0;i<=snp_thres-2;i++) cout<<" mmi["<<tt<<"]["<<i<<"]="<<mm_index[tt][i]; cout<<endl;
         rl=map_readlen-t-1; mmi2=mm_index[tt];
+
         for(i=0;i<snp_thres-t;i++) {
+        //for(i=0;i<snp_thres;i++) {//-g not in -v
             gap_pos = mmi1[i]; gap_snp=0;
             if(gap_pos<param.gap_edge||gap_pos>=rl) continue;
-            //cout<<"gap_pos="<<gap_pos<<endl;//shij
+            //cout<<"gap_pos="<<gap_pos<<endl;
+
             for(j=0;j<snp_thres-t-i;j++) {
+            //for(j=0;j<snp_thres-i;j++) {//-g not in -v
                 m2=mmi2[j];
                 if(m2<param.gap_edge||m2>=rl) continue;
                 if((int)gap_pos+(int)m2-shift1<(int)map_readlen) continue;
-				// shij:correct the NM number for gap
-                gap_snp=i+j+t;//gap_snp=i+j+1+t;shij
+				// correct the NM number for gap
+                gap_snp=i+j+t;//gap_snp=i+j+1+t;
                 clip=(int)gap_pos+(int)param.gap_edge-(int)map_readlen;
                 clip-=shift1;
                 if(clip>0) gap_pos-=clip;
-                //cout<<"clip="<<clip<<" gap_pos="<<gap_pos<<" gap_snp="<<gap_snp<<endl;//shij
+                //cout<<"clip="<<clip<<" gap_pos="<<gap_pos<<" gap_snp="<<gap_snp<<endl;
                 _ghit=int2hit(ref,_hit,shift,gap_pos);
-                //cout<<"t="<<t<<" i="<<i<<" m1="<<gap_pos<<" j="<<j<<" m2="<<m2<<" shift="<<shift<<" gap_snp="<<gap_snp<<" clip="<<clip<<" hitloc="<<_ghit.loc<<endl;//shij
+                //cout<<"t="<<t<<" i="<<i<<" m1="<<gap_pos<<" j="<<j<<" m2="<<m2<<" shift="<<shift<<" gap_snp="<<gap_snp<<" clip="<<clip<<" hitloc="<<_ghit.loc<<endl;
                 //cout<<"gap="<<(int)_ghit.gap_size<<" gap_pos="<<(int)_ghit.gap_pos<<" gap_snp="<<gap_snp<<" "<<ref.title[_hit.chr].name.c_str()<<":"<<_hit.loc<<endl;
                 return AddHit(ref, gap_snp, mode);
             }
             //if(gap_snp) break;
         }
-        /*
-        if((gg=MatchGap(mm_index[0], mm_index[tt], tt))>0) {
-            _ghit=ref.int2hit(_hit,readlen,shift,gg);
-            //cout<<"gap="<<(int)_hit.gap_size<<" gap_pos="<<(int)_hit.gap_pos<<" gap_snp="<<gap_snp<<" "<<ref.title[_hit.chr].name.c_str()<<":"<<_hit.loc<<endl;
-            //cout<<endl<<_pread->name.c_str()<<"#"<<_pread->readset<<" \t"<<_pread->seq<<endl;
-            if(AddHit(ref, chain_index, gap_snp, mode)) return 1;
-            //break;
-        }
-        */
     }
     return 0;
-
-    /*
-    bit32_t i, rev_flag;
-    if(gg>0&&t==param.gap&&gap_snp<=snp_thres&&readlen>0){
-        cout<<"read_dir="<<chain_index<<" ref_dir="<<(int)(readlen!=0)<<endl;
-        cout<<"gap="<<(int)_hit.gap_size<<" gap_pos="<<(int)_hit.gap_pos<<" gap_snp="<<gap_snp<<" "<<ref.title[_hit.chr].name.c_str()<<":"<<_hit.loc<<endl;
-        //for(i=0;i<=read_max_snp_num-2;i++) cout<<(int)mm_index[0][i]<<"\t"; cout<<endl;
-        rev_flag=chain_index^(readlen!=0); gg=(bit32_t) _hit.gap_pos;
-        if(tt%2) { //insert on reference
-            for(i=0;i<gg;i++) cout<<param.useful_nt[(ref.bfa[_hit.chr&0xfffeU].s[(_hit.loc+i)/SEGLEN]>>((SEGLEN-1-(_hit.loc+i)%SEGLEN)*2))&0x3];
-            for(i=0;i<t;i++) cout<<"-";
-            for(i=gg;i<map_readlen-t;i++) cout<<param.useful_nt[(ref.bfa[_hit.chr&0xfffeU].s[(_hit.loc+i)/SEGLEN]>>((SEGLEN-1-(_hit.loc+i)%SEGLEN)*2))&0x3];
-            cout<<endl;
-            for(i=0;i<map_readlen;i++) cout<<_outseq[rev_flag][i]; cout<<endl;
-        }
-        else { //insert on read
-            for(i=0;i<map_readlen+t;i++) cout<<param.useful_nt[(ref.bfa[_hit.chr&0xfffeU].s[(_hit.loc+i)/SEGLEN]>>((SEGLEN-1-(_hit.loc+i)%SEGLEN)*2))&0x3];
-            cout<<endl;
-            for(i=0;i<gg;i++) cout<<_outseq[rev_flag][i];
-            for(i=0;i<t;i++) cout<<"-";
-            for(i=gg;i<map_readlen;i++) cout<<_outseq[rev_flag][i]; cout<<endl;
-        }
-        //for(i=0;i<=read_max_snp_num-2;i++) cout<<(int)mm_index[tt][i]<<"\t"; cout<<endl;
-        if(++nothing==10) exit(0);
-    }
-    return 0;
-    */
 }
 
 void SingleAlign::SortHits4PE(int n) {
@@ -504,7 +450,7 @@ int SingleAlign::RunAlign(RefSeq &ref) {
     seedseg_num=min((int)((map_readlen-param.index_interval+1)/param.seed_size),(int)(read_max_snp_num+1));
 	if((param.readnt_cnt==1)&&(param.readnts[0]!='-')){
         ConvertBinaySeq();
-    }else{//shij
+    }else{
         ConvertBinarySeq();
     }
     snp_thres=read_max_snp_num;
@@ -603,7 +549,10 @@ int SingleAlign::FilterReads() {
     //if(_pread->bam_flag&0x200) return 1;
     if(param.max_snp_num<100) read_max_snp_num=param.max_snp_num;
     else read_max_snp_num=(bit32_t)((param.max_snp_num-100)/100.0*_pread->seq.size()+0.5);
-    if(param.gap>0) read_max_snp_num = read_max_snp_num + 1;//shij, to correct mismatch distance of gap
+
+    //if(param.gap>0) read_max_snp_num = read_max_snp_num + 1;//to correct mismatch distance of gap
+    if(param.gap>0) read_max_snp_num = read_max_snp_num + 1 + param.gap;//max mismatch distance = -g + -v, the ideal solution is to handle -g and -v independently
+
     if(read_max_snp_num>MAXSNPS) read_max_snp_num=MAXSNPS;
     TrimAdapter();
     if(TrimLowQual()!=0) return 1;
@@ -717,18 +666,4 @@ void SingleAlign::s_OutHit(int chain, int n, bit8_t nsnps, gHit *hit, int insert
         sprintf(_ch,"\tZS:Z:%c%c\n",chain_flag[hit->chr%2], chain_flag[chain]);
         os.append(_ch);
     }
-
-    //1	QNAME	Query (pair) NAME
-    //2	FLAG	bitwise FLAG
-    //3	RNAME	Reference sequence NAME
-    //4	POS	1-based leftmost POSition/coordinate of clipped sequence
-    //5	MAPQ	MAPping Quality (Phred-scaled)
-    //6	CIAGR	extended CIGAR string
-    //7	MRNM	Mate Reference sequence NaMe (‘=’ if same as RNAME)
-    //8	MPOS	1-based Mate POSistion
-    //9	ISIZE	Inferred insert SIZE
-    //10	SEQ	query SEQuence on the same strand as the reference
-    //11	QUAL	query QUALity (ASCII-33 gives the Phred base quality)
-    //12	OPT	variable OPTional fields in the format TAG:VTYPE:VALUE
-
 }

@@ -14,8 +14,7 @@
 
 using namespace std;
 
-//const unsigned int FIXELEMENT=6; // 160/32+1
-const unsigned int FIXELEMENT=16; // 480/32+1;shij
+const unsigned int FIXELEMENT=16; // 480/32+1
 const unsigned int MAXSNPS=15;
 const unsigned int MAXGAPS=3;//max length of gap, only one gap permitted
 
@@ -38,8 +37,8 @@ struct gHit {
     bit32_t chr: 18;
     bit32_t strand: 2; // strand infomation 00: '++', 01: '+-', 10: '-+', 11: '--'
     //bit16_t gap_size:4;  // positive for insert on read, negative for insert on ref, 0 for no-gap
-    int gap_size;//shij, use int type, or there will be bug for insertions
-    bit16_t gap_pos:9;//bit16_t gap_pos:8;shij: 511 at most
+    int gap_size;//use int type, or there will be bug for insertions
+    bit16_t gap_pos:9;//511 at most
 };
 
 class Param {
@@ -50,7 +49,7 @@ public:
 	void SetAdaptors(int n);
     void SetDigestionSite(const char *a);
     //void SetAlign(char readnt, char refnt);
-    void SetAlign(const char *a);//shij
+    void SetAlign(string &convert_rule0);
 
 public:
 
@@ -76,10 +75,10 @@ public:
     string useful_nt; // 32 byte
     string nx_nt; int num_procs; //48 byte
     bit32_t stdout; bit8_t zero_qual, qual_threshold, default_qual; //51 byte
-    bit8_t N_mis;//bit8_t read_nt, ref_nt, N_mis;shij
-    int readnt_cnt;//shij
-    char refnt,readnt;//shij
-    char readnts[5];//shij
+    bit8_t N_mis;//bit8_t read_nt, ref_nt, N_mis;
+    int readnt_cnt;
+    char refnt,readnt;
+    char readnts[5];
     bit32_t max_kmer_num, verbose_level; 
     float max_kmer_ratio;
     bit32_t nt3, pipe_out, seed_bits_lz; 
@@ -114,12 +113,6 @@ public:
         ss=(tt&0xFF00FF00UL)>>2; 
         tt=(tt&0x00FF00FFUL)+ss+(ss>>2)+(ss>>6);
         return (tt&0xFFFFUL)+(tt>>16)*6561;
-        /*
-        bit64_t t=(bit64_t) ((~(tt<<1&tt))|0x55555555UL)&tt;
-        return (bit32_t) ((bit64_t) ((((t&0xFFCULL)*0x100401004010ULL)&0xC00C00C00C00C0ULL)*0x300901B0510F3ULL)>>54)+((bit32_t) t&3UL)  //low 6nt
-              +(bit32_t) ((bit64_t) ((((t>>8&0x3FF0ULL)*0x10040100401ULL)&0x30030030030030ULL)*0x100300901B051ULL)>>52)*729UL // mid 5nt
-              +(bit32_t) ((bit64_t) ((((t>>22)*0x10040100401ULL)&0x3003003003003ULL)*0x100300901B051ULL)>>48&0xFFFULL)*177147UL;// high 5nt
-        */
     }                                                                                                       
 
     inline bit32_t XC(bit32_t tt) {return ((~tt)<<1)|tt|0x55555555UL;}  // generate T2C mask according to C locations
@@ -134,16 +127,8 @@ public:
     }
 
     inline bit32_t XM64(register bit64_t tt) {
-        //tt=(tt|(tt>>1))&0x5555555555555555ULL;
         tt|=tt>>1;
         tt&=0x5555555555555555ULL;
-        /*
-        register bit64_t tt1;
-        tt1=tt>>2;
-        tt+=tt1;
-        tt1=(tt+(tt1>>2))&0x0C30C30C30C30C30ULL;
-        return ((tt1*0x0041041041041041ULL)>>58)+(tt&0x3ULL);    
-        */
         tt+=tt>>2;
         tt&=0x3333333333333333ULL;
         tt+=tt>>4;
@@ -153,15 +138,7 @@ public:
         return tt;
     }
 
-    /*
-    inline bit32_t XM64X2(bit64_t tt1, bit64_t tt2) {
-        tt1=((tt1|(tt1>>1))&0x5555555555555555ULL)+((tt2|(tt2>>1))&0x5555555555555555ULL);
-        tt1=(tt1&0x3333333333333333ULL)+((tt1>>2)&0x3333333333333333ULL);
-        return (((tt1+(tt1>>4))&0x0F0F0F0F0F0F0F0FULL)*0x0101010101010101ULL)>>56;
-    }
-    */
-
-    //shij: 01 -> 00, 11 unchanged
+    // 01 -> 00, 11 unchanged
     inline bit64_t M2_judge(register bit64_t tt) {tt&=((tt & 0xAAAAAAAAAAAAAAAAULL) >> 1) | ((tt & 0x5555555555555555ULL) << 1); return tt;}
     
     bit32_t map3to4(bit32_t tt){

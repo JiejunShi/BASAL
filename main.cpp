@@ -29,6 +29,7 @@ string query_b_file;
 string ref_file;
 string out_align_file;
 string command_line;
+string conversion_rule;
 
 ifstream fin_db; igzstream gzfin_db;
 ifstream fin_a; igzstream gzfin_a;
@@ -36,7 +37,7 @@ ifstream fin_b; igzstream gzfin_b;
 ofstream fout;
 FILE *pout;
 ReadClass read_a, read_b;
-RefSeq ref1;//RefSeq ref;shij
+RefSeq refseq_ref;
 
 bit32_t n_aligned=0, n_unique=0, n_multiple=0;   //number of reads aligned
 bit32_t n_aligned_pairs=0, n_unique_pairs=0, n_multiple_pairs=0;  //number of pairs aligned
@@ -44,13 +45,13 @@ bit32_t n_aligned_a=0, n_unique_a=0, n_multiple_a=0;  //number of a reads aligne
 bit32_t n_aligned_b=0, n_unique_b=0, n_multiple_b=0;  //number of b reads aligned
 bit32_t ref_time, read_time;
 bit16_t tid[64];
-char version[] = "1.4";
+char version[] = "1.8";
 ostringstream message;
 
 void info(int level) {
 	if(level<=param.verbose_level) cerr<<message.str();
 	message.str("");
-} 
+}
 
 #ifdef THREAD
 pthread_mutex_t mutex_fin=PTHREAD_MUTEX_INITIALIZER;
@@ -67,9 +68,9 @@ void *t_SingleAlign(void *tid) {
 		a.ImportBatchReads(read_a.num, read_a.mreads);
 		pthread_mutex_unlock(&mutex_fin);
 		if(!n) break;
-		a.Do_Batch(ref1);//a.Do_Batch(ref);shij
+		a.Do_Batch(refseq_ref);
 		pthread_mutex_lock(&mutex_fout);
-		if(param.stdout) cout<<a._str_align; 
+		if(param.stdout) cout<<a._str_align;
 		else if(param.pipe_out) {fwrite(a._str_align.c_str(),1,a._str_align.size(),pout); fflush(pout);}
 		else fout<<a._str_align;
 		message<<"[BASAL @"<<Curr_Time()<<"] "<<cur_at-param.read_start+1<<" reads finished. "<<Cal_AllTime()<<" secs passed"<<endl; info(2);
@@ -103,13 +104,13 @@ void *t_PairAlign(void *tid) {
 		a.ImportBatchReads(n1, read_a.mreads, read_b.mreads);
 		pthread_mutex_unlock(&mutex_fin);
 		if(!n1||(n1!=n2)) break;
-		a.Do_Batch(ref1);//a.Do_Batch(ref);shij
+		a.Do_Batch(refseq_ref);
 		pthread_mutex_lock(&mutex_fout);
-		if(param.stdout) cout<<a._str_align; 
+		if(param.stdout) cout<<a._str_align;
 		else if(param.pipe_out) {fwrite(a._str_align.c_str(),1,a._str_align.size(),pout); fflush(pout);}
 		else fout<<a._str_align;
 		message<<"[BASAL @"<<Curr_Time()<<"] "<<cur_at-param.read_start+1<<" read pairs finished. "<<Cal_AllTime()<<" secs passed"<<endl;info(2);
-		pthread_mutex_unlock(&mutex_fout);		
+		pthread_mutex_unlock(&mutex_fout);
 	}
 	pthread_mutex_lock(&mutex_fout);
 	n_aligned_pairs+=a.n_aligned_pairs; n_unique_pairs+=a.n_unique_pairs; n_multiple_pairs+=a.n_multiple_pairs;
@@ -117,43 +118,34 @@ void *t_PairAlign(void *tid) {
 	n_aligned_b+=a.n_aligned_b; n_unique_b+=a.n_unique_b; n_multiple_b+=a.n_multiple_b;
 	pthread_mutex_unlock(&mutex_fout);
 	read_time+=Cal_AllTime()-ref_time;
-	return NULL;		
+	return NULL;
 };
 
 void Do_PairAlign() {
-	//if(param.max_snp_num>0) param.max_snp_num=2;
 	vector<pthread_t> pthread_ids(param.num_procs);
-	//create
-	//cout <<param.num_procs<<"num_procs\n";
 	for(int i=0; i<param.num_procs; i++) {
 		tid[i]=i; pthread_create(&pthread_ids[i], NULL, t_PairAlign, (void*)&tid[i]);
 	}
 	for(int i=0; i<param.num_procs; i++) pthread_join(pthread_ids[i], NULL);
 };
-/*shij
-void* wrapper_CalKmerFreq0(void*) {ref.t_CalKmerFreq(0); return NULL;}
-void* wrapper_CalKmerFreq1(void*) {ref.t_CalKmerFreq(1); return NULL;}
-void* wrapper_FillIndex0(void*) {ref.t_FillIndex(0); return NULL;}
-void* wrapper_FillIndex1(void*) {ref.t_FillIndex(1); return NULL;}
-*/
-void* wrapper_CalKmerFreq0(void*) {ref1.t_CalKmerFreq(0); return NULL;}
-void* wrapper_CalKmerFreq1(void*) {ref1.t_CalKmerFreq(1); return NULL;}
-void* wrapper_FillIndex0(void*) {ref1.t_FillIndex(0); return NULL;}
-void* wrapper_FillIndex1(void*) {ref1.t_FillIndex(1); return NULL;}
+void* wrapper_CalKmerFreq0(void*) {refseq_ref.t_CalKmerFreq(0); return NULL;}
+void* wrapper_CalKmerFreq1(void*) {refseq_ref.t_CalKmerFreq(1); return NULL;}
+void* wrapper_FillIndex0(void*) {refseq_ref.t_FillIndex(0); return NULL;}
+void* wrapper_FillIndex1(void*) {refseq_ref.t_FillIndex(1); return NULL;}
 
 void Do_Formatdb() {
-	if(param.RRBS_flag) ref1.CreateIndex();//ref.CreateIndex();shij
+	if(param.RRBS_flag) refseq_ref.CreateIndex();
 	else {
 		pthread_t t0, t1;
-		ref1.InitialIndex();//ref.InitialIndex();shij
+		refseq_ref.InitialIndex();
 		pthread_create(&t0, NULL, wrapper_CalKmerFreq0, NULL);
 		pthread_create(&t1, NULL, wrapper_CalKmerFreq1, NULL);
 		pthread_join(t0, NULL); pthread_join(t1, NULL);
-		ref1.AllocIndex();//ref.AllocIndex();shij
+		refseq_ref.AllocIndex();
 		pthread_create(&t0, NULL, wrapper_FillIndex0, NULL);
 		pthread_create(&t1, NULL, wrapper_FillIndex1, NULL);
 		pthread_join(t0, NULL); pthread_join(t1, NULL);
-		ref1.FinishIndex();//ref.FinishIndex();shij
+		refseq_ref.FinishIndex();
 	}
 	message<<"[BASAL @"<<Curr_Time()<<"] create seed table. "<<Cal_AllTime()<<" secs passed\n"; info(1);
 };
@@ -163,13 +155,13 @@ void Do_SingleAlign() {
 	SingleAlign a;
 	while(read_a.LoadBatchReads(fin_a,gzfin_a,0)) {
 		a.ImportBatchReads(read_a.num, read_a.mreads);
-		a.Do_Batch(ref1);//a.Do_Batch(ref);shij
-		if(param.stdout) cout<<a._str_align; 
+		a.Do_Batch(refseq_ref);
+		if(param.stdout) cout<<a._str_align;
 		else if(param.pipe_out) {fwrite(a._str_align.c_str(),1,a._str_align.size(),pout); fflush(pout);}
 		else fout<<a._str_align;
 		message<<"[BASAL @"<<Curr_Time()<<"] "<<read_a._index-param.read_start+1<<" reads finished. "<<Cal_AllTime()<<" secs passed"<<endl; info(2);
 	}
-	n_aligned=a.n_aligned; n_unique=a.n_unique; n_multiple=a.n_multiple;	
+	n_aligned=a.n_aligned; n_unique=a.n_unique; n_multiple=a.n_multiple;
 	read_time+=Cal_AllTime()-ref_time;
 };
 
@@ -182,12 +174,12 @@ void Do_PairAlign() {
 		if(!n1||(n1!=n2))
 			break;
 		a.ImportBatchReads(n1, read_a.mreads, read_b.mreads);
-		a.Do_Batch(ref1);//a.Do_Batch(ref);shij
-		if(param.stdout) cout<<a._str_align; 
+		a.Do_Batch(refseq_ref);
+		if(param.stdout) cout<<a._str_align;
 		else if(param.pipe_out) {fwrite(a._str_align.c_str(),1,a._str_align.size(),pout); fflush(pout);}
 		else fout<<a._str_align;
 		message<<"[BASAL @"<<Curr_Time()<<"] "<<read_a._index-param.read_start+1<<" read pairs finished. "<<Cal_AllTime()<<" secs passed"<<endl; info(2);
-	}	
+	}
 
     n_aligned_pairs+=a.n_aligned_pairs; n_unique_pairs+=a.n_unique_pairs; n_multiple_pairs+=a.n_multiple_pairs;
     n_aligned_a+=a.n_aligned_a; n_unique_a+=a.n_unique_a; n_multiple_a+=a.n_multiple_a;
@@ -196,7 +188,7 @@ void Do_PairAlign() {
 };
 
 void Do_Formatdb() {
-	ref1.CreateIndex();//ref.CreateIndex();shij
+	refseq_ref.CreateIndex();
 	message<<"[BASAL @"<<Curr_Time()<<"] create seed table. "<<Cal_AllTime()<<" secs passed\n"; info(1);
 };
 
@@ -205,55 +197,46 @@ void Do_Formatdb() {
 //usage
 void usage(void)
 {
-cerr	<<"   ___    __    __    __    _    \n"
+	cerr<<"   ___    __    __    __    _    \n"
 		<<"  | |_)  / /\\  ( (`  / /\\  | |   \n"
 		<<"  |_|_) /_/--\\ _)_) /_/--\\ |_|__ \n"
 		<<"\nWelcome to use BASAL [Version "<<version<<"]\n"
-		<<"BASAL is designed for reads aligning of Nucleotide-Base-Conversion(NBC) sequencing. It supports most kinds of\n"
-		<<"DNA and RNA modification detecting techniques based on NBC (Please check the option -M for more details).\n"
-		<<"BASAL takes advantages of both bitwise matching and HASH table seeding, so it is fast and accurate.\n"
-		<<"More conveniently, it doesn't require pre-built indexes of reference sequences, which saves space and memory.\n"
+		<<"BASAL is designed for reads mapping of nucleotide Base-Conversion(BC) sequencing. It is conversion-sensitive and\n"
+		<<"supports most kinds of RNA/DNA modification detecting techniques based on BC (Please check the option -M).\n"
+		<<"Its versatile bitwise operations make it compatible with both one-way and multi-way conversion data. \n"
+		<<"Moreover, it doesn't require pre-built index files of reference sequences, thus conserving space and memory.\n"
 		<<"\nUsage:	basal [options]"
 		<<"\n  Options for input/output files:\n"
-		<<"       -a  <str>    input reads in FASTA/FASTQ/BAM format [Required Argument]\n"
+		<<"       -a  <str>    input reads in FASTA/FASTQ/BAM format [Required option]\n"
 		<<"       -b  <str>    input reads which is paired with -a, (default: none, single-end)\n"
-		<<"       -d  <str>    reference sequences in FASTA format [Required Argument]\n"
+		<<"       -d  <str>    reference sequences in FASTA format [Required option]\n"
 		<<"       -o  <str>    output alignment in SAM/BAM format, if omitted, the output will be written to STDOUT in SAM format.\n"
-		<<"\n  Options for Nucleotide-Base-conversion:\n"
-        <<"       -M  <str>    the convert-from and convert-to base(s) seperated by ':' (default: C:T) \n"
+		<<"\n  Options for base-conversion:\n"
+		<<"       -M  <str>    the convert-from and convert-to base(s) seperated by ':' [Required option] \n"
 		<<"                    the convert-from base must be single letter from [A,T,C,G], \n"
 		<<"                    the convert-to base(s) can be single or multiple letters from [A,T,C,G,-], '-' represents deletion. \n"
-        <<"                   examples:\n"
+		<<"                   examples:\n"
 		<<"                    -M C:T, can detect C>T conversion(e.g. DNA bisulfite seq) \n"
-        <<"                    -M A:G, can detect A>G conversion in RNA m6A seq(e.g. GLORI) or DNA 6mA seq(e.g. NT-seq) \n"
-        <<"                    -M A:CGT, can detect RNA m6A in m6A-SAC-seq, which convert A to C/G/T \n"
-        <<"                    -M T:-, can detect pseudouridine in BID-seq, which convert pseudouridine to deletion \n"
-        <<"                    -M G:ACT-, can detect RNA m7G in m7G-quant-seq, which convert G to A/C/T/deletion \n"
+		<<"                    -M A:G, can detect A>G conversion in RNA m6A seq(e.g. GLORI) or DNA 6mA seq(e.g. NT-seq) \n"
+		<<"                    -M A:CGT, can detect RNA m6A in m6A-SAC-seq, which convert A to C/G/T \n"
+		<<"                    -M T:-, can detect pseudouridine in BID-seq, which convert pseudouridine to deletion \n"
+		<<"                    -M G:ACT-, can detect RNA m7G in m7G-quant-seq, which convert G to A/C/T/deletion \n"
 		<<"\n  Options for alignment:\n"
 		<<"       -v  <float>  maximum percentage/number of mismatch bases in each read. (default: "<<(param.max_snp_num-100)/100.0<<") \n"
 		<<"                    The float value(between 0 and 1) is interpreted as the percentage of read length.\n"
 		<<"                    The integer value is interpreted as absolute number of mismatches.\n"
 		<<"                    The maximum mismatches will be reduced to "<<MAXSNPS<<" if it exceed "<<MAXSNPS<<".\n"
-		/*
-		<<"       -v  <float>  if this value is between 0 and 1, it's interpreted as the mismatch rate w.r.t to the read length.\n"
-		<<"                   otherwise it's interpreted as the maximum number of mismatches allowed on a read, <="<<MAXSNPS<<".\n"
-		<<"                   example: -v 5 (max #mismatches = 5), -v 0.1 (max #mismatches = read_length * 10%)\n"
-		<<"                   default: "<<(param.max_snp_num-100)/100.0<<".\n"
-		*/
 		<<"       -g  <int>    maximum size of gap (deletion/insertion), <="<<MAXGAPS<<" bp. default: "<<param.gap<<"\n"
 		<<"       -w  <int>    maximum number of equal best hits to count, <="<<MAXHITS<<"\n"
-		<<"       -3           using 3-nucleotide mapping approach, only valid if there is only one convert-to base\n"
-        <<"       -B  <int>    start from the Nth read or read pair, default: 1\n"
-        <<"       -E  <int>    end at the Nth read or read pair, default: 4,294,967,295\n"
-       	<<"       -I  <int>    index interval (1~16), the reference genome will be indexed every Nbp, default: "<<param.index_interval<<".\n"
-       	<<"                    Larger -I uses less memory. For human genome, -I 4 uses ~9GB, -I 16 only uses ~5GB.\n"
-       	<<"                    For RRBS, index interval is fixed to 1bp and this option is neglected.\n"
-       	<<"       -k  <float>  the cut-off ratio for over-represented kmers, default: "<<param.max_kmer_ratio<<"\n"
-       	<<"                    example: -k 1e-6 means the top 0.0001\% over-represented kmer will be skipped in alignment\n"
-		<<"       -s  <int>    seed size, default: 16(for WGBS mode), 12(for RRBS mode). min=8, max=16.\n"
-    	<<"       -S  <int>    seed for random number generation used in selecting multiple hits\n"
-        <<"                    set identical values to allow reproducible mapping results. \n"
-        <<"                    (default: "<<param.randseed<<", get seed from system clock, mapping results not resproducible)\n"
+		<<"       -B  <int>    start from the Nth read or read pair, default: 1\n"
+		<<"       -E  <int>    end at the Nth read or read pair, default: 4,294,967,295\n"
+		<<"       -I  <int>    index interval (1~16), the reference genome will be indexed every Nbp, default: "<<param.index_interval<<". Larger -I uses less memory.\n"
+		<<"       -k  <float>  the cut-off ratio for over-represented kmers, default: "<<param.max_kmer_ratio<<"\n"
+		<<"                    example: -k 1e-6 means the top 0.0001\% over-represented kmer will be skipped in alignment\n"
+		<<"       -s  <int>    seed size (8~16), default: 16.\n"
+		<<"       -S  <int>    seed for random number generation used in selecting multiple hits\n"
+		<<"                    set identical values to allow reproducible mapping results. \n"
+		<<"                    (default: "<<param.randseed<<", get seed from system clock, mapping results not resproducible)\n"
 #ifdef THREAD
 		<<"       -p  <int>    number of processors to use, default: "<<param.num_procs<<"\n"
 #endif
@@ -264,32 +247,27 @@ cerr	<<"   ___    __    __    __    _    \n"
 		<<"       -q  <int>    quality threshold in trimming, 0-40, default: 0 (no trim)\n"
 		<<"       -z  <int>    base quality, default: "<<(int) param.zero_qual<<" [set 64 for Illumina, 33 for Sanger]\n"
 		<<"       -f  <int>    reads containing more than this number of Ns will be skipped, default="<<param.max_ns<<"\n"
-        <<"       -A  <str>    3-end adapter sequence, default: none (no trim)\n"
-        <<"       -L  <int>    map the first N nucleotides of the read, the max is "<<param.max_readlen<<" (default).\n"
-		<<"\n  Options for bisulfite sequencing:\n"
-		<<"       -n  [0,1,2]  set mapping strand information. default: "<<param.chains<<"\n"
-        <<"                    -n 0: only map single-end(SE) reads to forward strands(directional protocol), i.e. BSW(++) and BSC(-+). \n"
-		<<"                          For pair-end(PE), map read#1 to BSW(++) and BSC(-+), map read#2 to BSWC(+-) and BSCC(--).\n"
-        <<"                    -n 1: map SE or PE reads to all 4 strands(non-directional protocol) \n"
-		<<"                    -n 2: only map SE reads to reverse strands(PBAT protocol), i.e. BSWC(+-), BSCC(--). \n"
-		<<"                          For PE, map read#1 to BSWC(+-) and BSCC(--), read#2 to BSW(++) and BSC(-+).\n"
-        <<"       -D  <str>    activate RRBS mode and set restriction enzyme digestion sites. (default: none)\n"
-        <<"                    The digestion site is marked by \'-\', example: -D C-CGG for MspI digestion site.\n"
+		<<"       -A  <str>    3' end adapter sequence to be trimmed, default: none (no trim)\n"
+		<<"       -L  <int>    map the first N bases of the read, the max is "<<param.max_readlen<<" (default).\n"
+		<<"\n  Options for mapping strand:\n"
+		<<"       -n  [0,1,2]  -n 0: directional protocol, map single-end(SE) reads to forward strands, i.e. ++(same as OT in bismark) and -+(same as OB in bismark). \n"
+		<<"                          For pair-end(PE), map read#1 to ++ and -+, map read#2 to +-(same as CTOT in bismark) and --(same as CTOB in bismark).\n"
+		<<"                    -n 1: non-directional protocol, map reads to all 4 strands. \n"
+		<<"                    -n 2: PBAT protocol, map SE reads to reverse strands, i.e. +- and --. \n"
+		<<"                          For PE, map read#1 to +- and --, read#2 to ++ and -+.\n"
+		<<"                    default: "<<param.chains<<"\n"
 		<<"\n  Options for reporting:\n"
-        <<"       -r  [0,1,2]  how to report repeat hits, 0=none(unique hit/pair); 1=random one; 2=all(slow), default:"<<param.report_repeat_hits<<".\n"
-        <<"       -R           print corresponding reference sequences in SAM output, default: off\n"
-        <<"       -u           report unmapped reads, default: off\n"
+		<<"       -r  [0,1,2]  how to report repeat hits, 0=none(unique hit/pair); 1=random one; 2=all, default:"<<param.report_repeat_hits<<".\n"
+		<<"       -R           print corresponding reference sequences in SAM output, default: off\n"
+		<<"       -u           report unmapped reads, default: off\n"
 		<<"       -H           do not print header information in SAM format output\n"
-		<<"       -V  [0,1,2]  verbose level: 0=no message displayed (quiet mode); \n"
-		<<"                    1=major message (default); 2=detailed message.\n"
-
+		<<"       -V  [0,1,2]  verbose level: 0=no message displayed (quiet mode); 1=major message (default); 2=detailed message.\n"
 		<<"       -h           help\n\n";
 	exit(1);
 };
 
 int mGetOptions(int rgc, char *rgv[])
 {
-	//[options]
 	int i;
 	for(i=1,command_line=rgv[0];i<rgc;i++) command_line=command_line+" "+rgv[i];
 	for(i=1; i<rgc; i++) {
@@ -301,7 +279,6 @@ int mGetOptions(int rgc, char *rgv[])
 			case 'd': if(rgv[i][2]==0) ref_file = rgv[++i]; else if(rgv[i][2]=='=') ref_file=rgv[i]+3; else return i; break;
 			case 's': if(rgv[i][2]==0)
 				param.SetSeedSize(atoi(rgv[++i])); else if(rgv[i][2]=='=') param.SetSeedSize(atoi(rgv[i]+3)); else return i;
-				//if(param.RRBS_flag) param.SetSeedSize(12);
 				break;
 			case 'o':
 				if(rgv[i][2]==0) out_align_file = rgv[++i];
@@ -309,23 +286,14 @@ int mGetOptions(int rgc, char *rgv[])
 				else return i;
 				param.stdout=0;
 				break;
-			/* shij
-	        case 'M': if(rgv[i][2]==0) {i++; param.SetAlign(rgv[i][0], rgv[i][1]);}
-                      else if(rgv[i][2]=='=') param.SetAlign(rgv[i][3], rgv[i][4]);
-                      else return i;
-                      break;
-			*/
-			case 'M': if(rgv[i][2]==0){param.SetAlign(rgv[++i]);}
-					  else if(rgv[i][2]=='='){param.SetAlign(rgv[i]+3);}
+			case 'M': if(rgv[i][2]==0){conversion_rule=rgv[++i];}
+					  else if(rgv[i][2]=='='){conversion_rule=rgv[i]+3;}
 					  else return i;
 					  break;
 
 			case 'm': if(rgv[i][2]==0) param.min_insert = atoi(rgv[++i]); else if(rgv[i][2]=='=') param.min_insert=atoi(rgv[i]+3); else return i; break;
-			//case 'n': if(rgv[i][2]==0) param.chains = atoi(rgv[++i])%4; else if(rgv[i][2]=='=') param.chains=atoi(rgv[i]+3)%4; else return i; break;
-			
-			//case 'n': if(rgv[i][2]==0) param.chains=(atoi(rgv[++i])!=0); else if(rgv[i][2]=='=') param.chains=(atoi(rgv[i]+3)!=0); else return i; break;//shij
-			case 'n': if(rgv[i][2]==0) param.chains=atoi(rgv[++i]); else if(rgv[i][2]=='=') param.chains=atoi(rgv[i]+3); else return i; break;//shij
-			
+			case 'n': if(rgv[i][2]==0) param.chains=atoi(rgv[++i]); else if(rgv[i][2]=='=') param.chains=atoi(rgv[i]+3); else return i; break;
+
 			case 'g': if(rgv[i][2]==0) param.gap=atoi(rgv[++i]); else if(rgv[i][2]=='=') param.gap=atoi(rgv[i]+3); else return i;
 			    if(param.gap>MAXGAPS) {
 			        cerr<<"warning: gap length exceeds max value:"<<MAXGAPS<<endl;
@@ -382,7 +350,7 @@ int mGetOptions(int rgc, char *rgv[])
 		    case 'E': if(rgv[i][2]==0) param.read_end = atoi(rgv[++i]); else if(rgv[i][2]=='=') param.read_end=atoi(rgv[i]+3); else return i; break;
 	        case 'D': if(rgv[i][2]==0) param.SetDigestionSite(rgv[++i]); else if(rgv[i][2]=='=') param.SetDigestionSite(rgv[i]+3); else return i; break;
             case 'L': if(rgv[i][2]==0) param.max_readlen = atoi(rgv[++i]); else if(rgv[i][2]=='=') param.max_readlen = atoi(rgv[i]+3); else return i; break;
-            case 'N': if(rgv[i][2]==0) param.N_mis=1; else return i; break; // disabled?
+            case 'N': if(rgv[i][2]==0) param.N_mis=1; else return i; break;
             case 'S': if(rgv[i][2]==0) param.randseed = atoi(rgv[++i]);  else if(rgv[i][2]=='=') param.randseed = atoi(rgv[i]+3); else return i; break;
 			case 'h':usage();   //usage information
             default: return i;
@@ -393,10 +361,10 @@ int mGetOptions(int rgc, char *rgv[])
 }
 
 void check_ofile(string &filename, string &err_msg) {
-	ofstream ff;                       
+	ofstream ff;
 	ff.open(filename.c_str()); cerr.flush();
-	if(!ff) {   
-		cerr<<endl<<err_msg<<filename<<endl;                                              
+	if(!ff) {
+		cerr<<endl<<err_msg<<filename<<endl;
 		exit(1);
 	}
 }
@@ -407,9 +375,9 @@ int check_ifile(string &filename, string &err_msg) {
 	if(!ff) {
 		cerr<<endl<<err_msg<<filename<<endl;
 		exit(1);
-    }                	
+    }
 	byte1=ff.get(); byte2=ff.get();
-	return ((byte1==0x1f)&&(byte2==0x8b));  // if input is gzip file or not       
+	return ((byte1==0x1f)&&(byte2==0x8b));  // if input is gzip file or not
 }
 
 int check_ifile_format(string &filename, int gz_flag) {
@@ -420,15 +388,15 @@ int check_ifile_format(string &filename, int gz_flag) {
         gg>>s1; gg.getline(ch, 1000);
 		if(s1[0]=='>') {message<<" \t(format: gzipped FASTA)\n"; info(1); return 0;} //fasta
 		if(s1[0]=='@') {message<<" \t(format: gzipped FASTQ)\n"; info(1); return 1;} //fastq
-		if(samopen(filename.c_str(), "rb", 0)!=0) {message<<" \t(format: BAM)\n"; info(1); return 3;} //BAM         
+		if(samopen(filename.c_str(), "rb", 0)!=0) {message<<" \t(format: BAM)\n"; info(1); return 3;} //BAM
         if(samopen(filename.c_str(), "r", 0)!=0) {message<<" \t(format: SAM)\n"; info(1); return 2;} //SAM
-	}	 
+	}
 	else {
 		ff.open(filename.c_str());
         ff>>s1; ff.getline(ch, 1000);
 		if(s1[0]=='>') {message<<" \t(format: FASTA)\n"; info(1); return 0;} //fasta
 		if(s1[0]=='@') {message<<" \t(format: FASTQ)\n"; info(1); return 1;} //fastq
-        if(samopen(filename.c_str(), "rb", 0)!=0) {message<<" \t(format: BAM)\n"; info(1); return 3;} //BAM   		
+        if(samopen(filename.c_str(), "rb", 0)!=0) {message<<" \t(format: BAM)\n"; info(1); return 3;} //BAM
         if(samopen(filename.c_str(), "r", 0)!=0) {message<<" \t(format: SAM)\n"; info(1); return 2;} //SAM
 	}
 	cerr<<"\t(format: unknown)\nUnknown input format.\n";
@@ -450,10 +418,6 @@ void RunProcess(void) {
     if(param.max_readlen<(FIXELEMENT-1)*SEGLEN) message<<" \thard clip length: "<<param.max_readlen; message<<endl;
     if(param.pairend||param.RRBS_flag) message<<"\tmin fragment size: "<<param.min_insert<<" \tmax fragemt size: "<<param.max_insert<<endl;
 
-	/* shij
-	if(param.nt3) message<<"\t3-nucleotide alignment mode: "<<param.read_nt<<" <=> "<<param.ref_nt;
-    else message<<"\twildcard alignment mode: "<<param.read_nt<<" in reads => "<<param.ref_nt<<" in reference";
-	*/
     if(param.nt3) message<<"\t3-nucleotide mapping approach";
     else message<<"\twildcard mapping approach";
 
@@ -463,18 +427,6 @@ void RunProcess(void) {
     if(param.report_repeat_hits==1) message<<"unique + one random multiple alignments";
     if(param.report_repeat_hits==2) message<<"unique + all multiple alignments"; message<<endl;
 
-	/* shij
-	if(param.pairend){
-        message<<"\tmapping strand (read_1): ++,-+";
-        if(param.chains) message<< ",+-,--";
-        message<<"\tmapping strand (read_2): +-,--";
-        if(param.chains) message<< ",++,-+";
-    }
-    else {
-        message<<"\tmapping strand: ++,-+";
-        if(param.chains) message<< ",+-,--";
-    }
-	*/
 	if(param.pairend){
         message<<"\tmapping strand (read_1): ";
         if(param.chains==0){
@@ -503,7 +455,6 @@ void RunProcess(void) {
 			message<< "+-,--";
 		}
     }
-
 
     message<<endl;
     for(bit32_t i=0; i<param.n_adapter;i++) message<<"\tadapter sequence #"<<i+1<<": "<<param.adapter[i]<<endl;
@@ -560,14 +511,8 @@ void RunProcess(void) {
 		}
 
 		if(param.out_sam&&param.sam_header) {
-			/*shij
-			for(bit32_t i=0;i<ref.total_num;i++){
-				sprintf(_ch,"@SQ\tSN:%s\tLN:%u\n",ref.title[i<<1].name.c_str(),ref.title[i<<1].size);
-				_str.append(_ch);
-			}
-			*/
-			for(bit32_t i=0;i<ref1.total_num;i++){
-				sprintf(_ch,"@SQ\tSN:%s\tLN:%u\n",ref1.title[i<<1].name.c_str(),ref1.title[i<<1].size);
+			for(bit32_t i=0;i<refseq_ref.total_num;i++){
+				sprintf(_ch,"@SQ\tSN:%s\tLN:%u\n",refseq_ref.title[i<<1].name.c_str(),refseq_ref.title[i<<1].size);
 				_str.append(_ch);
 			}
 
@@ -637,14 +582,8 @@ void RunProcess(void) {
 
 		if(param.out_sam&&param.sam_header) {
     		char _ch[1000];
-			/*shij
-	    	for(bit32_t i=0;i<ref.total_num;i++) {
-	    	    sprintf(_ch,"@SQ\tSN:%s\tLN:%u\n",ref.title[i<<1].name.c_str(),ref.title[i<<1].size);
-	    	    _str.append(_ch);
-	    	}
-			*/
-			for(bit32_t i=0;i<ref1.total_num;i++) {
-	    	    sprintf(_ch,"@SQ\tSN:%s\tLN:%u\n",ref1.title[i<<1].name.c_str(),ref1.title[i<<1].size);
+			for(bit32_t i=0;i<refseq_ref.total_num;i++) {
+	    	    sprintf(_ch,"@SQ\tSN:%s\tLN:%u\n",refseq_ref.title[i<<1].name.c_str(),refseq_ref.title[i<<1].size);
 	    	    _str.append(_ch);
 	    	}
 
@@ -680,7 +619,12 @@ int main(int argc, char *argv[]) {
         cerr<<"unknown option: "<<argv[noptions]<<endl;
         exit(noptions);
     }
-	//shij
+	if(conversion_rule.empty()){
+		cerr<<endl<<"-M option is required"<<endl;
+		exit(1);
+	}else{
+		param.SetAlign(conversion_rule);
+	}
 	if(param.nt3==1 && param.readnt_cnt>1){
         cerr<<"3-nucleotide mapping approach is only valid for single convert-to base. But "<< param.readnt_cnt <<" convert-to bases are detected in -M. Remove -3 and try again." << endl;exit(1);
     }
@@ -696,39 +640,13 @@ int main(int argc, char *argv[]) {
 	if(param.gz_ref) gzfin_db.open(ref_file.c_str());
 	else fin_db.open(ref_file.c_str());
 
-	/*shij
-	ref.Run_ConvertBinseq(fin_db, gzfin_db);
-	message<<"[BASAL @"<<Curr_Time()<<"] "<<ref.total_num<<" reference seqs loaded, total size "<<ref.sum_length<<" bp. "<<Cal_AllTime()<<" secs passed"<<endl;
-	info(1);
-	*/
-	ref1.Run_ConvertBinseq(fin_db, gzfin_db);
-	message<<"[BASAL @"<<Curr_Time()<<"] "<<ref1.total_num<<" reference seqs loaded, total size "<<ref1.sum_length<<" bp. "<<Cal_AllTime()<<" secs passed"<<endl;
+	refseq_ref.Run_ConvertBinseq(fin_db, gzfin_db);
+	message<<"[BASAL @"<<Curr_Time()<<"] "<<refseq_ref.total_num<<" reference seqs loaded, total size "<<refseq_ref.sum_length<<" bp. "<<Cal_AllTime()<<" secs passed"<<endl;
 	info(1);
 
 	Do_Formatdb(); ref_time=Cal_AllTime(); read_time=0;
 	RunProcess();
-	/*
-	cerr<<(read_a._index-param.read_start+1)<<" reads in "<<read_time<<" sec."<<endl;
-	cerr.precision(1);
-	cerr<<fixed<<1.0*(read_a._index-param.read_start+1)/read_time<<" read";
-	if(param.pairend) cerr<<" pairs per sec."<<endl;
-	else cerr<<"s per sec."<<endl;
-	*/
 
-	/*shij
-	if(param.out_sam==2&&param.pipe_out==0){
-		char sys_cmd[PATH_MAX+20], abs_bam_file[PATH_MAX];
-		char *res=realpath(out_align_file.c_str(), abs_bam_file);
-		if(res) {
-		    sprintf(sys_cmd,"sam2bam.sh %s",abs_bam_file);
-		    system(sys_cmd);
-		}
-		else {
-		    message<<"[BASAL @"<<Curr_Time()<<"] warning: cannot get absolute path for sam2bam.sh. Alignment file remains in SAM format.\n";
-		}
-	}
-	info(1);
-	*/
-    ref1.ReleaseIndex();//ref.ReleaseIndex();shij
+    refseq_ref.ReleaseIndex();
 	return 0;
 }

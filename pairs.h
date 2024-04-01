@@ -32,7 +32,6 @@ public:
 	void StringAlign(RefSeq &ref, string &os);
 	void StringAlign_ClosestUnpair(RefSeq &ref, string &os);
 	
-	//added by yxi
 	int GetPairs(bit32_t na, bit32_t nb);
     int StringAlignPair(RefSeq &ref, string &os);
 	void StringAlignUnpair(int fa, int fb, RefSeq &ref, string &os);
@@ -54,7 +53,6 @@ protected:
 	//PairHit pairhits[2*MAXSNPS+1][MAXHITS+1];
     PairArray *pairhits;
     bit32_t rand_rSeed;	//thread safe RNG seed
-	//by yxi
     char _mapseq[256];
     char _ch[1024];  
     char cigar[16];

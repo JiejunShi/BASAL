@@ -1,14 +1,14 @@
 #include "param.h"
-#include "utilities.h" //shij
+#include "utilities.h"
 #include<iostream>
 
 using namespace std;
 
 Param::Param()
 {
-	//num_procs=sysconf(_SC_NPROCESSORS_ONLN);//shij
-    num_procs=1;//shij
-	//if(num_procs>8) num_procs=8; //shij
+	//num_procs=sysconf(_SC_NPROCESSORS_ONLN);
+    num_procs=1;
+	//if(num_procs>8) num_procs=8;
 
 	max_dbseq_size=0x1000000; //16Mb
 	append_dbseq_size=0x1000000;  //16Mb
@@ -27,7 +27,7 @@ Param::Param()
 	//seed_size= 16;
 	//seed_bits=(1<<(seed_size*2))-1;
 	
-	max_snp_num = 110;//max_snp_num = 108;shij
+	max_snp_num = 110;
 	max_num_hits = MAXHITS>100?100:MAXHITS;
 	max_kmer_ratio = 5e-7;
 	
@@ -42,7 +42,7 @@ Param::Param()
 	
 	for(bit32_t i=0; i<seed_size; i++) seed_bits|=0x3<<i*2;
 
-    out_sam=1;// out_sam=0; //shij
+    out_sam=1;
 	read_start=1;
 	read_end=~0;
 
@@ -56,9 +56,8 @@ Param::Param()
     gap=0;
     gap_edge=6;
     max_readlen=(FIXELEMENT-1)*SEGLEN;
-    //SetAlign('T','C');//shij
-    refnt='C';readnt='T';//shij
-    readnt_cnt=0;//shij
+    refnt='C';readnt='T';
+    readnt_cnt=0;
     sam_header=1;
     stdout=1;
     N_mis=0;
@@ -107,10 +106,6 @@ void Param::SetDigestionSite(const char *a) {
 }
 
 void Param::SetSeedSize(int n) {
-    //if(RRBS_flag&&n!=12) {      
-    //    cerr<<"seed size fixed to 12 in RRBS mode, -s option ignored\n";
-    //    return;
-    //}
     if(n>16||n<10) {cerr<<"seed size must be between 10 and 16\n"; exit(1);}
 	seed_size=n;
 	seed_bits_lz=(SEGLEN-seed_size)*2;
@@ -125,99 +120,47 @@ bit8_t alphabet0[256]={
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, /* next is 'A' */
 0,0,1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0, /* next is 'a' */ 
-0,0,1,0,0,0,2,0,0,0,0,0,0,0,0, /* next is 'p' */
-0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+0,0,1,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 };
 
 bit8_t reg_alphabet[256]={
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, /* next is 'A' */ 
 3,0,3,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0, /* next is 'a' */ 
-3,0,3,0,0,0,3,0,0,0,0,0,0,0,0, /* next is 'p' */
-0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+3,0,3,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 };
 
-//shij, mask convert_to_bases as 01, others are 11
+//mask convert_to_bases as 01, others are 11
 bit8_t alphabet_Mread[256];
 bit8_t rev_alphabet_Mread[256];
 
 //bit8_t nv3='N'; //set any unknown char as 'N'
-char nv3='N';//shij
+char nv3='N';
 char rev_char[256] = {
 nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,
 nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3, /* next is 'A' */ 
-'T',nv3,'G',nv3,nv3,nv3,'C',nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3, /* next is 'P' */
-nv3,nv3,nv3,nv3,'A',nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3, /* next is 'a' */ 
-'t',nv3,'g',nv3,nv3,nv3,'c',nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3, /* next is 'p' */
-nv3,nv3,nv3,nv3,'a',nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,
+'T',nv3,'G',nv3,nv3,nv3,'C',nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,'A',nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3, /* next is 'a' */ 
+'t',nv3,'g',nv3,nv3,nv3,'c',nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,'a',nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,
 nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,
 nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,
 nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,
-nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3
+nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3,nv3
 };
 
 bit8_t bit_nt[4];
 
-//char nt_code[4] = {'A', 'C', 'G', 'T'};
-char nt_code[5] = {'A', 'C', 'G', 'T', '-'};//shij
-char revnt_code[5] = {'T', 'G', 'C', 'A', '-'};//shij
+char nt_code[5] = {'A', 'C', 'G', 'T', '-'};
+char revnt_code[5] = {'T', 'G', 'C', 'A', '-'};
 
-/*shij
-void Param::SetAlign(char readnt, char refnt){
-    int i, j; bit8_t tmp=0;
-    read_nt=toupper(readnt); ref_nt=toupper(refnt);
-    if((!reg_alphabet[read_nt])||(!reg_alphabet[ref_nt])) {
-        cerr<<"Unknown nucleotide."<<endl;
-        exit(1);
-    }
-    if(read_nt==ref_nt){
-        cerr<<"Must specify different nucleotides for additional alignment."<<endl;
-        exit(1);
-    }
-
-    for(i=0;i<4;i++) bit_nt[i]=100;    
-    bit_nt[alphabet0[read_nt]]=3;
-    bit_nt[alphabet0[ref_nt]]=1;
-    for(i=0;i<4;i++)
-        if(nt_code[i]!=ref_nt&&nt_code[i]!=read_nt) {
-            for(j=0;j<4;j++) if(bit_nt[j]==100) break;
-            bit_nt[i]=tmp; tmp=2;
-        }
-
-    //for(i=0;i<4;i++) cout<<" "<<nt_code[i]<<":"<<(int) bit_nt[i]; cout<<endl;
-
-    for(i=0;i<256;i++) alphabet[i]=bit_nt[0];
-    alphabet[(unsigned char)'c']=bit_nt[1]; alphabet[(unsigned char)'C']=bit_nt[1]; 
-    alphabet[(unsigned char)'g']=bit_nt[2]; alphabet[(unsigned char)'G']=bit_nt[2];
-    alphabet[(unsigned char)'t']=bit_nt[3]; alphabet[(unsigned char)'T']=bit_nt[3];
-
-    for(i=0;i<256;i++) rev_alphabet[i]=bit_nt[3];
-    rev_alphabet[(unsigned char)'c']=bit_nt[2]; rev_alphabet[(unsigned char)'C']=bit_nt[2]; 
-    rev_alphabet[(unsigned char)'g']=bit_nt[1]; rev_alphabet[(unsigned char)'G']=bit_nt[1];
-    rev_alphabet[(unsigned char)'t']=bit_nt[0]; rev_alphabet[(unsigned char)'T']=bit_nt[0];
-
-    for(i=0;i<4;i++) useful_nt[bit_nt[i]]=nt_code[i];
-    for(i=0;i<4;i++) useful_nt[bit_nt[i]+4]=tolower(nt_code[i]);
-
-    //cout<<useful_nt<<endl;
-
-    //for(i=0;i<4;i++) cout<<" "<<(char) nt_code[i]<<":"<<(int) alphabet[nt_code[i]]; cout<<endl;
-    //for(i=0;i<4;i++) cout<<" "<<(char) tolower(nt_code[i])<<":"<<(int) tolower(alphabet[nt_code[i]]); cout<<endl;
-
-    //for(i=0;i<4;i++) cout<<" "<<(char) nt_code[i]<<":"<<(int) rev_alphabet[nt_code[i]]; cout<<endl;
-    //for(i=0;i<4;i++) cout<<" "<<(char) tolower(nt_code[i])<<":"<<(int) tolower(rev_alphabet[nt_code[i]]); cout<<endl;
-}
-*/
-void Param::SetAlign(const char* a){
-    string convert_rule0 = a;
+void Param::SetAlign(string &convert_rule0){
     if (convert_rule0[1]!=':'){
         cerr<<"invalid -M, ref base(one letter in A/C/G/T) should be assigned first before :"<<endl;exit(1);
     }
@@ -272,9 +215,9 @@ void Param::SetAlign(const char* a){
     };    
     int i, j; j = 0;
     for(i=0;i<4;i++) bit_nt[i]=100;
-    // shij: convert_from_base must be 01, consistent to XC64(keep 01 as 01, mask 00/10/11 as 11)
+    // convert_from_base must be 01, consistent to XC64(keep 01 as 01, mask 00/10/11 as 11)
     bit_nt[alphabet0[refnt]]=1;
-    // shij: if only one convert_to_base(not '-'), mark convert_to_base as 11, otherwise mark other bases as 0/2/3(order dowsn't matter)
+    // if only one convert_to_base(not '-'), mark convert_to_base as 11, otherwise mark other bases as 0/2/3(order dowsn't matter)
     int other_bit[3] = {0, 2, 3};
     if(readnt_cnt==1){
         if(readnts[0]!='-'){
@@ -320,8 +263,3 @@ void Param::SetAlign(const char* a){
 }
 
 char chain_flag[2] = {'+', '-'};
-
-//char revnt_code[4] = {'T', 'G', 'C', 'A'};shij
-
-
-
