@@ -8,6 +8,7 @@ To address these challenges, we have introduced BASAL (BAse-conversion Sequencin
 ## Authors
 - Jiejun Shi
 - Moping Xu
+- Miao Wang
 ## Dependencies
 - Python3 with following packages
   - numpy; pandas; copy; collections; multiprocessing; pysam
