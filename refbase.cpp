@@ -1,7 +1,7 @@
 #include<iostream>
 #include<algorithm>
 #include<string.h>
-#include "dbseq.h"
+#include "refbase.h"
 
 using namespace std;
 
@@ -42,7 +42,7 @@ ref_loc_t RefSeq::LoadNextSeq(igzstream &fin) {
 	if(!param.gz_ref) return 0;
 	fin>>c; if(fin.eof()) return 0;
 	string::iterator z=_seq.begin();
-	_length=0; 
+	_length=0;
 	fin>>_name; fin.getline(ch, 1000);
 	while(!fin.eof()) {
 		fin>>c; if(fin.eof()) break;
@@ -113,7 +113,7 @@ void RefSeq::UnmaskRegion() {
 		b.end=_seq.find_first_of(param.nx_nt, b.begin);
 		b.end = (b.end<=_length? b.end : _length);
 		if(b.end-b.begin <30) continue;
-		if((!_blocks.empty()) && (b.id==_blocks[_blocks.size()-1].id) 
+		if((!_blocks.empty()) && (b.id==_blocks[_blocks.size()-1].id)
 			&& (b.begin - _blocks[_blocks.size()-1].end <5))
 			_blocks[_blocks.size()-1].end=b.end;
 		else {
@@ -124,7 +124,7 @@ void RefSeq::UnmaskRegion() {
 			//cout <<"bid "<<b.id<<" "<<b.begin<<" "<<b.end<<endl;
 			//cout <<"cbid "<<cb.id<<" "<<cb.begin<<" "<<cb.end<<endl;
 		}
-	}	
+	}
 }
 
 void RefSeq::find_CCGG() {
@@ -132,7 +132,7 @@ void RefSeq::find_CCGG() {
     vector<ref_loc_t> tmpset_index_BSW[50], tmpset_index_BSC[50];
     vector<pair<ref_loc_t, bit32_t> > tmp_CCGG_sites;
     //vector<pair<ref_loc_t, bit32_t> >::iterator rit;
-        
+
     std::transform(_seq.begin(),_seq.end(),_seq.begin(),static_cast < int(*)(int) > (toupper));
 
     tmp_offset=title[_count-1].rc_offset-param.seed_size;
@@ -160,12 +160,12 @@ void RefSeq::find_CCGG() {
     for(j=0;j+1<tmp_CCGG_sites.size();++j) {
     //for(rit=tmp_CCGG_sites.begin();rit!=tmp_CCGG_sites.end()-1&&tmp_CCGG_sites.size()>1;++rit) {
     	for(i=j+1,seglen=0;i<tmp_CCGG_sites.size();++i)
-    		if((seglen=tmp_CCGG_sites[i].first+tmp_CCGG_sites[i].second-tmp_CCGG_sites[j].first)>=param.min_insert) break; 
+    		if((seglen=tmp_CCGG_sites[i].first+tmp_CCGG_sites[i].second-tmp_CCGG_sites[j].first)>=param.min_insert) break;
     	if(seglen>param.max_insert||seglen<param.min_insert) continue;
 		for(i=0,seedloc=tmp_CCGG_sites[j].first;i<param.max_seedseg_num&&seedloc<=tmp_max;i++,seedloc+=param.seed_size)
 			tmpset_index_BSW[i].push_back(seedloc);
     }
-    
+
     for(j=1;j<tmp_CCGG_sites.size();++j) {
     //for(rit=tmp_CCGG_sites.begin()+1;rit!=tmp_CCGG_sites.end()&&tmp_CCGG_sites.size()>1;++rit) {
 		for(i=j-1,seglen=0;i>=0;--i)
@@ -176,15 +176,15 @@ void RefSeq::find_CCGG() {
     }
 
     for(i=0;i<param.max_seedseg_num;i++) {
-        CCGG_index[i].push_back(tmpset_index_BSW[i]); 
-        CCGG_index[i].push_back(tmpset_index_BSC[i]); 
+        CCGG_index[i].push_back(tmpset_index_BSW[i]);
+        CCGG_index[i].push_back(tmpset_index_BSC[i]);
     }
 }
 
 bool BlockComp(Block a, Block b) {return (a.id<b.id)||((a.id==b.id)&&(a.begin<b.begin));}
 
 void RefSeq::Run_ConvertBinseq(ifstream &fin, igzstream &gzfin) {
-    param.max_seedseg_num=(FIXELEMENT-1)*SEGLEN/param.seed_size; 
+    param.max_seedseg_num=(FIXELEMENT-1)*SEGLEN/param.seed_size;
 	_seq.resize(param.max_dbseq_size);
 	RefTitle r;
 	_count=0;
@@ -194,7 +194,7 @@ void RefSeq::Run_ConvertBinseq(ifstream &fin, igzstream &gzfin) {
 		r.size=_length;
 		r.rc_offset=((_length+(SEGLEN-1))/SEGLEN+BINSEQPAD)*SEGLEN;
 		title.push_back(r);
-		
+
 		OneBfa a;
 		BinSeq(a);
 		bfa.push_back(a);
@@ -203,16 +203,16 @@ void RefSeq::Run_ConvertBinseq(ifstream &fin, igzstream &gzfin) {
 		total_num++;
 		sum_length+=_length;
 		//cout<<r.size<<endl;
-		
+
 		//RC reference seq
 		title.push_back(r);
 		OneBfa ca;
 		cBinSeq(ca);
         bfa.push_back(ca);
 		//UnmaskRegion();
-		_count++;   
+		_count++;
 		//total_num++;
-		//sum_length+=_length;                                                                 		
+		//sum_length+=_length;
 	    //cout<<"ref:"<<r.name<<endl;
 	    if(param.RRBS_flag) find_CCGG();
 	}
@@ -239,7 +239,7 @@ void RefSeq::Run_ConvertBinseq(ifstream &fin, igzstream &gzfin) {
         else {
             cptr=copy(bfa[i].s, bfa[i].s+bfa[i].n, cptr);
             delete [] bfa[i].s;
-            bfa[i].s=cptr-bfa[i].n;            
+            bfa[i].s=cptr-bfa[i].n;
         }
     }
 
@@ -250,7 +250,7 @@ void RefSeq::Run_ConvertBinseq(ifstream &fin, igzstream &gzfin) {
 
 	_seq.clear(); //free ram
 }
-                                                
+
 bit32_t RefSeq::s_MakeSeed_1(bit64_t *_m, int _a) {
     return param.XT(((_m[0]<<(_a*2))|((_m[1]>>1)>>(63-_a*2)))>>param.seed_bits_lz);
     //if(_a>=0) return param.XT((*_m>>_a)&param.seed_bits);
@@ -303,7 +303,7 @@ void RefSeq::CalKmerFreq() {
 void RefSeq::t_CalKmerFreq(bit32_t ref_chain) {
 	bit64_t *_m; bit32_t i,j,i2, prefetch, ptr=0;
 	bit32_t dbs[PREFETCH_CAL_UNIT];
-	prefetch=PREFETCH_CAL_UNIT*param.index_interval; 
+	prefetch=PREFETCH_CAL_UNIT*param.index_interval;
   	for(vector<Block>::iterator p=_blocks.begin(); p!=_blocks.end(); p++) {
 		if(p->id%2!=ref_chain) continue;
 		//cout<<"seg:"<<p->begin<<" "<<p->end<<endl;
@@ -314,7 +314,7 @@ void RefSeq::t_CalKmerFreq(bit32_t ref_chain) {
         }
    		//cout<<"chain="<<ref_chain; for(jj=0;jj<PREFETCH_CAL_UNIT;jj++) cout<<" db["<<jj<<"]="<<dbs[jj]; cout<<endl;
    		for(i=(p->begin/param.index_interval)*param.index_interval; i<=i2; i+=param.index_interval,++ptr) {
-   		    index2[dbs[ptr%PREFETCH_CAL_UNIT]].n[ref_chain]++; 
+   		    index2[dbs[ptr%PREFETCH_CAL_UNIT]].n[ref_chain]++;
    		    j=s_MakeSeed_1(_m+(i+prefetch)/SEGLEN,(i+prefetch)%SEGLEN);
 			dbs[ptr%PREFETCH_CAL_UNIT]=j;
    		    __builtin_prefetch(index2+j,1,0);
@@ -322,11 +322,11 @@ void RefSeq::t_CalKmerFreq(bit32_t ref_chain) {
    		    //for(jj=-PREFETCH_CAL_UNIT;jj<PREFETCH_CAL_UNIT*4;jj++) cout<<" "<<jj<<":"<<dbs[jj]; cout<<endl;
         }
   	}
-}	
+}
 
 void RefSeq::AllocIndex() {
 	KmerLoc *v; KmerLoc2 *u;
-	bit32_t i, j, t, *ptr, block_size=1<<22, ptr_count=0; 
+	bit32_t i, j, t, *ptr, block_size=1<<22, ptr_count=0;
     if(param.RRBS_flag){
     	for(v=index,i=0; i<total_kmers; v++,i++) {
     		if(v->n1>0) {
@@ -341,7 +341,7 @@ void RefSeq::AllocIndex() {
     	mem_pool.push_back(ptr);
         for(i=0,u=index2; i<total_kmers; i++,u++) {
         	t=u->n[1]+u->n[0]; kmer_count[i]=t;
-            if(t==0) continue; 
+            if(t==0) continue;
             if(ptr_count+t>=block_size-PREFETCH_LOOP) {
             	if(t>=block_size-PREFETCH_LOOP) {
             		u->loc1= new bit32_t[t+PREFETCH_LOOP];
@@ -394,7 +394,7 @@ void RefSeq::FillIndex() {
                 tmphit.chr=chr|(j<<16); _m=bfa[chr].s;
                 for(it=CCGG_index[j][chr].begin();it!=CCGG_index[j][chr].end();++it) {
                     z=index+s_MakeSeed_1(_m+(*it)/SEGLEN,(*it)%SEGLEN);
-                    tmphit.loc=(*it); 
+                    tmphit.loc=(*it);
                     z->loc1[z->n1++]=tmphit;
                 }
                 if(param.pairend||param.chains) {
@@ -403,7 +403,7 @@ void RefSeq::FillIndex() {
                     for(it=CCGG_index[j][chr1].begin();it!=CCGG_index[j][chr1].end();++it) {
                         if(tmp_offset<*it) continue;
                         z=index+s_MakeSeed_1(_m+(int)(tmp_offset-*it)/SEGLEN,(tmp_offset-*it)%SEGLEN);
-                        tmphit.loc=(tmp_offset-*it); 
+                        tmphit.loc=(tmp_offset-*it);
                         z->loc1[z->n1++]=tmphit;
                     }
                 }
@@ -417,11 +417,11 @@ void RefSeq::FillIndex() {
 }
 
 void RefSeq::t_FillIndex(bit32_t ref_chain) {
-	KmerLoc2 *z2; Hit tmphit; 
+	KmerLoc2 *z2; Hit tmphit;
    	bit64_t *_m; bit32_t i2,j,i,prefetch, tmp=1-ref_chain, ptr=0;
     bit32_t dbs[PREFETCH_CRT_UNIT];
     prefetch=PREFETCH_CRT_UNIT*param.index_interval;
-    for(vector<Block>::iterator p=_blocks.begin(); p!=_blocks.end(); p++) {            
+    for(vector<Block>::iterator p=_blocks.begin(); p!=_blocks.end(); p++) {
 		if(p->id%2!=ref_chain) continue;
         tmphit.chr=p->id; _m=bfa[tmphit.chr].s;
      	i2=((p->end-param.seed_size)/param.index_interval)*param.index_interval;
@@ -449,7 +449,7 @@ void RefSeq::CreateIndex() {
 
 void RefSeq::FinishIndex() {
     bit32_t i;
-    if(param.RRBS_flag) 
+    if(param.RRBS_flag)
         for(i=0;i<param.max_seedseg_num;i++) CCGG_index[i].clear();
 }
 
@@ -465,7 +465,7 @@ pair<ref_loc_t,bit32_t> RefSeq::CCGG_seglen(ref_id_t chr, ref_loc_t pos, int rea
 	//cout<<"pos:"<<pos<<"\tleft:"<<left<<" "<<CCGG_sites[chr2][left]<<"\tright:"<<right<<" "<<CCGG_sites[chr2][right]<<"\tmid:"<<mid<<" "<<CCGG_sites[chr2][mid]<<endl;
         if((midval=(*CCGG_sites_chr)[mid].first)==pos) {//return pair<ref_loc_t,int>(pos+1,CCGG_sites[chr2][mid+1]-midval+2);
             left=mid;right=mid+1;break;
-        } 
+        }
         else if(midval<pos) left=mid;
         //if(CCGG_sites[chr2][mid]<=pos) left=mid;
         else right=mid;
@@ -474,15 +474,14 @@ pair<ref_loc_t,bit32_t> RefSeq::CCGG_seglen(ref_id_t chr, ref_loc_t pos, int rea
     //cout<<"pos:"<<pos<<"\tleft:"<<left<<" "<<CCGG_sites[chr2][left]<<"\tright:"<<right<<" "<<CCGG_sites[chr2][right]<<"\tmid:"<<mid<<" "<<CCGG_sites[chr2][mid]<<endl;
     //for (mid=left-2;mid<left+3;mid++) cout<<"\t"<<CCGG_sites[chr2][mid]; cout<<endl;
     seg_start=(*CCGG_sites_chr)[left].first;
-    while(((seg_end=(*CCGG_sites_chr)[right].first+(*CCGG_sites_chr)[right].second)<pos+readlen)&&(right<CCGG_sites_chr->size())) right++; 
+    while(((seg_end=(*CCGG_sites_chr)[right].first+(*CCGG_sites_chr)[right].second)<pos+readlen)&&(right<CCGG_sites_chr->size())) right++;
         //cout<<"pos:"<<pos<<"\tleft:"<<left<<" "<<CCGG_sites[chr2][left]<<"\tright:"<<right<<" "<<CCGG_sites[chr2][right]<<"\tmid:"<<mid<<" "<<CCGG_sites[chr2][mid]<<endl;}
     //cout<<"ZP:"<<(seg_start+1)<<"  ZL:"<<(seg_end-seg_start)<<endl;
     //return pair<ref_loc_t,int>(CCGG_sites[chr2][left]+1, CCGG_sites[chr2][right]-CCGG_sites[chr2][left]+2);
     return pair<ref_loc_t,bit32_t>(seg_start+1, seg_end-seg_start);
-}    
+}
 
-    
+
 ref_loc_t RefSeq::hit2int(Hit h) {
     return ref_anchor[h.chr/2]+h.loc;
 }
-

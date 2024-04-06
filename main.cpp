@@ -10,7 +10,7 @@
 #include <sstream>
 #include <vector>
 #include "reads.h"
-#include "dbseq.h"
+#include "refbase.h"
 #include "align.h"
 #include "param.h"
 #include "pairs.h"

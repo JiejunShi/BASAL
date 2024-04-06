@@ -1,7 +1,7 @@
 #ifndef _PAIRS_H_
 #define _PAIRS_H_
 
-#include "dbseq.h"
+#include "refbase.h"
 #include "reads.h"
 #include "align.h"
 
@@ -31,7 +31,7 @@ public:
 	void Do_Batch(RefSeq &ref);
 	void StringAlign(RefSeq &ref, string &os);
 	void StringAlign_ClosestUnpair(RefSeq &ref, string &os);
-	
+
 	int GetPairs(bit32_t na, bit32_t nb);
     int StringAlignPair(RefSeq &ref, string &os);
 	void StringAlignUnpair(int fa, int fb, RefSeq &ref, string &os);
@@ -40,11 +40,11 @@ public:
     int TrimAdapter();
     void FixPairReadName();
 
-public:	
+public:
 	SingleAlign _sa;
 	SingleAlign _sb;
 	bit32_t num_reads;
-	bit32_t n_aligned_pairs, n_aligned_a, n_aligned_b;	
+	bit32_t n_aligned_pairs, n_aligned_a, n_aligned_b;
 	bit32_t n_unique_pairs, n_unique_a, n_unique_b;
 	bit32_t n_multiple_pairs, n_multiple_a, n_multiple_b;
 	string _str_align;
@@ -54,9 +54,9 @@ protected:
     PairArray *pairhits;
     bit32_t rand_rSeed;	//thread safe RNG seed
     char _mapseq[256];
-    char _ch[1024];  
+    char _ch[1024];
     char cigar[16];
-   	SingleAlign * _stmp;  
+   	SingleAlign * _stmp;
     int checked_pair_mismatch[MAXSNPS+1][MAXSNPS+1];
 };
 

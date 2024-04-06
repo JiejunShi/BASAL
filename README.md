@@ -1,5 +1,5 @@
 # BAse-conversion Sequencing ALigner (BASAL)
-Nucleotide modifications, encompassing both RNA and DNA modifications, play a pivotal role in gene transcription regulation. To pinpoint the modified sites, a variety of Base Conversion (BC) methods have been introduced. These BC methods can be categorized into three types: (1) one-way conversion, such as C-to-T for 5mC detection, or A-to-G for m6A detection; (2) multi-way conversion, such as converting A to C/G/T for m1A detection; and (3) deletion-induced conversion, such as U-to-deletion conversion for pseudouridine detection. These methods, particularly effective when coupled with sequencing, offer single-base resolution, surpassing immunoprecipitation-based techniques. 
+Nucleotide modifications, encompassing both RNA and DNA modifications, play a pivotal role in gene transcription regulation. To pinpoint the modified sites, a variety of Base Conversion (BC) methods have been introduced. These BC methods can be categorized into three types: (1) one-way conversion, such as C-to-T for 5mC detection, or A-to-G for m6A detection; (2) multi-way conversion, such as converting A to C/G/T for m1A detection; and (3) deletion-induced conversion, such as U-to-deletion conversion for pseudouridine detection. These methods, particularly effective when coupled with sequencing, offer single-base resolution, surpassing immunoprecipitation-based techniques.
 
 However, these evolving BC methods present significant data analysis challenges, with no single bioinformatic tool capable of handling the diversity of data produced. The primary hurdle is reads mapping, with two main strategies: the "mutation-rate approach" and the "conversion-sensitive approach." The former often results in misalignment or the erroneous discard of reads due to treating converted bases as mismatches, while the latter, though more logical, lacks tools support the wide array of BC methods, especially those involving multi-way or deletion-induced conversions.
 
@@ -8,7 +8,6 @@ To address these challenges, we have introduced BASAL (BAse-conversion Sequencin
 ## Authors
 - Jiejun Shi
 - Moping Xu
-- Miao Wang
 ## Dependencies
 - Python3 with following packages
   - numpy; pandas; copy; collections; multiprocessing; pysam
@@ -21,14 +20,14 @@ No installation needed for BASALkit.
 	   ___    __    __    __    _
 	  | |_)  / /\  ( (`  / /\  | |
 	  |_|_) /_/--\ _)_) /_/--\ |_|__
-	
+
 	Usage:  basal [options]
 	  Options for input/output files:
 	       -a  <str>    input reads in FASTA/FASTQ/BAM format [Required option]
 	       -b  <str>    input reads which is paired with -a, (default: none, single-end)
 	       -d  <str>    reference sequences in FASTA format [Required option]
 	       -o  <str>    output alignment in SAM/BAM format, if omitted, the output will be written to STDOUT in SAM format.
-	
+
 	  Options for base-conversion:
 	       -M  <str>    the convert-from and convert-to base(s) seperated by ':' [Required option]
 	                    the convert-from base must be single letter from [A,T,C,G],
@@ -38,7 +37,8 @@ No installation needed for BASALkit.
 	                    -M A:G, can detect A>G conversion in RNA m6A seq(e.g. GLORI) or DNA 6mA seq(e.g. NT-seq)
 	                    -M A:CGT, can detect RNA m6A in m6A-SAC-seq, which convert A to C/G/T
 	                    -M T:-, can detect pseudouridine in BID-seq, which convert pseudouridine to deletion
-	
+	                    -M G:ACT-, can detect RNA m7G in m7G-quant-seq, which convert G to A/C/T/deletion
+
 	  Options for alignment:
 	       -v  <float>  maximum percentage/number of mismatch bases in each read. (default: 0.1)
 	                    The float value(between 0 and 1) is interpreted as the percentage of read length.
@@ -56,25 +56,27 @@ No installation needed for BASALkit.
 	                    set identical values to allow reproducible mapping results.
 	                    (default: 0, get seed from system clock, mapping results not resproducible)
 	       -p  <int>    number of processors to use, default: 1
-	
+
 	  Options for pair-end alignment:
 	       -m  <int>    minimal insert size allowed, default: 28
 	       -x  <int>    maximal insert size allowed, default: 1000
-	
+
 	  Options for reads trimming:
 	       -q  <int>    quality threshold in trimming, 0-40, default: 0 (no trim)
 	       -z  <int>    base quality, default: 33 [set 64 for Illumina, 33 for Sanger]
 	       -f  <int>    reads containing more than this number of Ns will be skipped, default=5
 	       -A  <str>    3' end adapter sequence to be trimmed, default: none (no trim)
 	       -L  <int>    map the first N bases of the read, the max is 480 (default).
-	
+
 	  Options for mapping strand:
-	       -n  [0,1,2]  -n 0: directional protocol, map single-end(SE) reads to forward strands, i.e. ++(same as OT in bismark) and -+(same as OB in bismark). For pair-end(PE), map read#1 to ++ and -+, map read#2 to +-(same as CTOT in bismark) and --(same as CTOB in bismark).
+	       -n  [0,1,2]  -n 0: directional protocol, map single-end(SE) reads to forward strands, i.e. ++(same as OT in bismark) and -+(same as OB in bismark).
+	                          For pair-end(PE), map read#1 to ++ and -+, map read#2 to +-(same as CTOT in bismark) and --(same as CTOB in bismark).
 	                    -n 1: non-directional protocol, map reads to all 4 strands.
-	                    -n 2: PBAT protocol, map SE reads to reverse strands, i.e. +- and --. For PE, map read#1 to +- and --, read#2 to ++ and -+.
-	
+	                    -n 2: PBAT protocol, map SE reads to reverse strands, i.e. +- and --.
+	                          For PE, map read#1 to +- and --, read#2 to ++ and -+.
+
 	  Options for reporting:
-	       -r  [0,1,2]  how to report repeat hits, 0=none(unique hit/pair); 1=random one; 2=all, default:1.
+	       -r  [0,1,2]  how to report repeat hits, 0=none(unique hit/pair); 1=random one; 2=all(slow), default:1.
 	       -R           print corresponding reference sequences in SAM output, default: off
 	       -u           report unmapped reads, default: off
 	       -H           do not print header information in SAM format output
@@ -85,16 +87,27 @@ No installation needed for BASALkit.
 The executable script is `basalkit.py`. The other one, `basalkit_functions.py`, is not executable and contains the functions required by `basalkit.py`.
 
 	$ python basalkit.py -h
-		
+
 	For help information of each function, try:
-	
+
 	  python basalkit.py <Function> -h
-	
+
 	Availible Functions:
-	
+
 		avgmod	Calculate average modification level(AvgMod) of tested nucleotide(e.g. 5mC/6mA)
 		shiftD	Shift the position of D in CIGAR in bam/sam. For deletion-induced techniques(e.g. BID-seq), if a deletion is detected in a polymer of convert-from bases, it is re-assigned to the rightmost base of the polymer.
 		mergeBAM	Transfer the transcriptome BAM file to genome positions, and then merge it with the genome BAM file. This function is designed for RNA modification sequencing.
 		fdr	Perform significance test between treatment and control/background, and report FDR for each sites
 		regmod	Summarise the modification level of given regions
 
+#### BASALkit - mergeBAM
+The ‘mergeBAM’ module, specialized for RNA modification data, merges two-step alignment results and converts transcriptome alignment coordinates to genomic coordinates using the transcriptome annotation file. Reads spanning introns have their CIGAR values in the BAM file adjusted to reflect RNA splicing. CIGAR, an acronym for Concise Idiosyncratic Gapped Alignment Report, documents alignment discrepancies. The converted transcriptome alignments are then merged with genomic alignments into a single BAM file.
+
+#### BASALkit - avgmod
+This is the core module of BASALkit and calculates the conversion rate at potential modification sites, i.e., the frequency of the ‘convert-to’ base relative to sequencing depth. It's important to note that the conversion rate may not directly reflect the modification rate, depending on whether the converted base is modified or not (take note of the -D option): for methods like TAPS, the modification rate equals the conversion rate (use -D M); for BS-seq, it is 1 minus the conversion rate (use -D U).
+
+#### BASALkit - fdr
+Identifying credible modification sites often involves statistical comparisons between treatment and control groups, where the control could be untreated or unmodified samples. For RNA m6A detection, controls could be regular RNA-seq or FTO-treated samples. The ‘fdr’ module, designed for this purpose, employs unilateral statistical tests (e.g., Fisher Test, Binomial Test) to assess modification significance, aiding in the selection of credible sites.
+
+#### BASALkit - regmod
+Beyond individual site analysis, DNA/RNA modification studies often assess the average modification level across genes or regions. The ‘regmod’ module facilitates this, extracting convert-to base frequency and sequencing depth for all modification sites within a specified region, determining the region's average modification level as the ratio of their respective sums.

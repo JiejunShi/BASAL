@@ -10,7 +10,7 @@
 
 #include "param.h"
 #include "reads.h"
-#include "dbseq.h"
+#include "refbase.h"
 
 using namespace std;
 
@@ -335,7 +335,7 @@ inline bit32_t SingleAlign::AddHit(RefSeq &ref, bit32_t w, bit32_t mode) {
     else {
     	if(!hitset[_ghit.chr>>1].insert(_ghit.loc).second) return 0; //hit already exist
 	}
-    
+
 	//cout<<"###HIT### "<<ref.title[_ghit.chr].name<<":"<<_ghit.loc<<" mis:"<<tmp_snp<<" snp_thres:"<<snp_thres<<endl;
     xhits[read_chain_index][w][x_cur_n_hit[read_chain_index][w]++]=_ghit;
     //if(w==mode&&!param.pairend&&param.report_repeat_hits==0) if(_cur_n_hit[w]+_cur_n_chit[w]>1) return 1;
