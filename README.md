@@ -8,6 +8,7 @@ To address these challenges, we have introduced BASAL (BAse-conversion Sequencin
 ## Authors
 - Jiejun Shi
 - Moping Xu
+- Miao Wang
 ## Dependencies
 - Python3 with following packages
   - numpy; pandas; copy; collections; multiprocessing; pysam
@@ -37,7 +38,6 @@ No installation needed for BASALkit.
 	                    -M A:G, can detect A>G conversion in RNA m6A seq(e.g. GLORI) or DNA 6mA seq(e.g. NT-seq)
 	                    -M A:CGT, can detect RNA m6A in m6A-SAC-seq, which convert A to C/G/T
 	                    -M T:-, can detect pseudouridine in BID-seq, which convert pseudouridine to deletion
-	                    -M G:ACT-, can detect RNA m7G in m7G-quant-seq, which convert G to A/C/T/deletion
 
 	  Options for alignment:
 	       -v  <float>  maximum percentage/number of mismatch bases in each read. (default: 0.1)
@@ -69,11 +69,9 @@ No installation needed for BASALkit.
 	       -L  <int>    map the first N bases of the read, the max is 480 (default).
 
 	  Options for mapping strand:
-	       -n  [0,1,2]  -n 0: directional protocol, map single-end(SE) reads to forward strands, i.e. ++(same as OT in bismark) and -+(same as OB in bismark).
-	                          For pair-end(PE), map read#1 to ++ and -+, map read#2 to +-(same as CTOT in bismark) and --(same as CTOB in bismark).
+	       -n  [0,1,2]  -n 0: directional protocol, map single-end(SE) reads to forward strands, i.e. ++(same as OT in bismark) and -+(same as OB in bismark). For pair-end(PE), map read#1 to ++ and -+, map read#2 to +-(same as CTOT in bismark) and --(same as CTOB in bismark).
 	                    -n 1: non-directional protocol, map reads to all 4 strands.
-	                    -n 2: PBAT protocol, map SE reads to reverse strands, i.e. +- and --.
-	                          For PE, map read#1 to +- and --, read#2 to ++ and -+.
+	                    -n 2: PBAT protocol, map SE reads to reverse strands, i.e. +- and --. For PE, map read#1 to +- and --, read#2 to ++ and -+.
 
 	  Options for reporting:
 	       -r  [0,1,2]  how to report repeat hits, 0=none(unique hit/pair); 1=random one; 2=all(slow), default:1.
