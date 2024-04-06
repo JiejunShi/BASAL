@@ -93,12 +93,11 @@ The executable script is `basalkit.py`. The other one, `basalkit_functions.py`, 
 	  python basalkit.py <Function> -h
 
 	Availible Functions:
-
-		avgmod	Calculate average modification level(AvgMod) of tested nucleotide(e.g. 5mC/6mA)
-		shiftD	Shift the position of D in CIGAR in bam/sam. For deletion-induced techniques(e.g. BID-seq), if a deletion is detected in a polymer of convert-from bases, it is re-assigned to the rightmost base of the polymer.
 		mergeBAM	Transfer the transcriptome BAM file to genome positions, and then merge it with the genome BAM file. This function is designed for RNA modification sequencing.
+		avgmod	Calculate average modification level(AvgMod) of tested nucleotide(e.g. 5mC/6mA)
 		fdr	Perform significance test between treatment and control/background, and report FDR for each sites
 		regmod	Summarise the modification level of given regions
+		shiftD	Shift the position of D in CIGAR in bam/sam. For deletion-induced techniques(e.g. BID-seq), if a deletion is detected in a polymer of convert-from bases, it is re-assigned to the rightmost base of the polymer.
 
 #### BASALkit - mergeBAM
 The `mergeBAM` module, specialized for RNA modification data, merges two-step alignment results and converts transcriptome alignment coordinates to genomic coordinates using the transcriptome annotation file. Reads spanning introns have their CIGAR values in the BAM file adjusted to reflect RNA splicing. CIGAR, an acronym for Concise Idiosyncratic Gapped Alignment Report, documents alignment discrepancies. The converted transcriptome alignments are then merged with genomic alignments into a single BAM file.
