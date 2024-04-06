@@ -8,6 +8,7 @@ To address these challenges, we have introduced BASAL (BAse-conversion Sequencin
 ## Authors
 - Jiejun Shi
 - Moping Xu
+- Miao Wang
 ## Dependencies
 - Python3 with following packages
   - numpy; pandas; copy; collections; multiprocessing; pysam
@@ -69,11 +70,9 @@ No installation needed for BASALkit.
 	       -L  <int>    map the first N bases of the read, the max is 480 (default).
 
 	  Options for mapping strand:
-	       -n  [0,1,2]  -n 0: directional protocol, map single-end(SE) reads to forward strands, i.e. ++(same as OT in bismark) and -+(same as OB in bismark).
-	                          For pair-end(PE), map read#1 to ++ and -+, map read#2 to +-(same as CTOT in bismark) and --(same as CTOB in bismark).
+	       -n  [0,1,2]  -n 0: directional protocol, map single-end(SE) reads to forward strands, i.e. ++(same as OT in bismark) and -+(same as OB in bismark). For pair-end(PE), map read#1 to ++ and -+, map read#2 to +-(same as CTOT in bismark) and --(same as CTOB in bismark).
 	                    -n 1: non-directional protocol, map reads to all 4 strands.
-	                    -n 2: PBAT protocol, map SE reads to reverse strands, i.e. +- and --.
-	                          For PE, map read#1 to +- and --, read#2 to ++ and -+.
+	                    -n 2: PBAT protocol, map SE reads to reverse strands, i.e. +- and --. For PE, map read#1 to +- and --, read#2 to ++ and -+.
 
 	  Options for reporting:
 	       -r  [0,1,2]  how to report repeat hits, 0=none(unique hit/pair); 1=random one; 2=all(slow), default:1.
@@ -93,12 +92,11 @@ The executable script is `basalkit.py`. The other one, `basalkit_functions.py`, 
 	  python basalkit.py <Function> -h
 
 	Availible Functions:
-
+    mergeBAM	Transfer the transcriptome BAM file to genome positions, and then merge it with the genome BAM file. This function is designed for RNA modification sequencing.
 		avgmod	Calculate average modification level(AvgMod) of tested nucleotide(e.g. 5mC/6mA)
-		shiftD	Shift the position of D in CIGAR in bam/sam. For deletion-induced techniques(e.g. BID-seq), if a deletion is detected in a polymer of convert-from bases, it is re-assigned to the rightmost base of the polymer.
-		mergeBAM	Transfer the transcriptome BAM file to genome positions, and then merge it with the genome BAM file. This function is designed for RNA modification sequencing.
 		fdr	Perform significance test between treatment and control/background, and report FDR for each sites
 		regmod	Summarise the modification level of given regions
+    shiftD	Shift the position of D in CIGAR in bam/sam. For deletion-induced techniques(e.g. BID-seq), if a deletion is detected in a polymer of convert-from bases, it is re-assigned to the rightmost base of the polymer.
 
 #### BASALkit - mergeBAM
 The `mergeBAM` module, specialized for RNA modification data, merges two-step alignment results and converts transcriptome alignment coordinates to genomic coordinates using the transcriptome annotation file. Reads spanning introns have their CIGAR values in the BAM file adjusted to reflect RNA splicing. CIGAR, an acronym for Concise Idiosyncratic Gapped Alignment Report, documents alignment discrepancies. The converted transcriptome alignments are then merged with genomic alignments into a single BAM file.
