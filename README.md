@@ -89,7 +89,7 @@ No installation needed for BASALkit.
 	       -h           help
 
 ### BASALkit
-The executable script is `basalkit.py`. The other one, `basalkit_functions.py`, is not executable and contains the functions required by `basalkit.py`.
+This is the downstream analysis toolkit for BASAL, designed to summarize sequence alignment results and identifying significantly converted sites. The executable script is `basalkit.py`. The other one, `basalkit_functions.py`, is not executable and contains the functions required by `basalkit.py`.
 
 	$ python basalkit.py -h
 
