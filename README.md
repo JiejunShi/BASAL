@@ -5,6 +5,7 @@ However, these evolving BC methods present significant data analysis challenges,
 <div align=center><img src="https://github.com/JiejunShi/BASAL/blob/main/media/mapping_strategies.png" /></div>  
 
 **Fig 1. Illustration of the differences between mutation-rate strategy and conversion-sensitive strategy in mapping BC sequencing reads using m6A sequencing (A is converted to G, while m6A is not converted) as an example.**
+
 To address these challenges, we have introduced BASAL (BAse-conversion Sequencing ALigner), leveraging bitwise masking technology to support the analysis of diverse BC methods (**Fig 2**). BASAL has demonstrated superior performance in mapping accuracy and efficiency over existing tools, excelling at identifying reliable modification sites, and uncovering cell clusters and trajectories in single-cell epitranscriptomic data that align with biological functions. This breakthrough positions BASAL as a universal tool for analyzing various RNA and DNA modification detection technologies, facilitating groundbreaking discoveries in epigenomics and epitranscriptomics.
 <div align=center><img src="https://github.com/JiejunShi/BASAL/blob/main/media/BASAL_algorithm.png" /></div>  
 
