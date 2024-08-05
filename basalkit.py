@@ -3,7 +3,6 @@
 import os, re, sys, time, argparse, array
 import pandas as pd
 import numpy as np
-import multiprocessing as mp
 from copy import deepcopy
 from collections import OrderedDict
 from basalkit_functions import *

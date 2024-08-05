@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import multiprocessing as mp
 import os,re,sys,time
-from collections import Counter,defaultdict,OrderedDict
+from collections import defaultdict,OrderedDict
 import numpy as np
 import pandas as pd
 import math
@@ -633,7 +632,11 @@ def generate_new_cigar(all_bins, start, end, old_cigar, trans_dir):
 
 def map_to_genome(header_dict,gtf,segment,unlift,UNLIFT):
     try:
-        genome_info = gtf.get(segment.reference_name)
+        if '|' in segment.reference_name:
+            reference_name = segment.reference_name.split("|")[0]
+        else:
+            reference_name = segment.reference_name
+        genome_info = gtf.get(reference_name)
         new_ref_id = header_dict.get(genome_info['chr'])
         trans_dir = genome_info['strand']
     except TypeError:
@@ -712,24 +715,24 @@ def map_to_genome(header_dict,gtf,segment,unlift,UNLIFT):
                         for f in flags:
                             new_flag |= f
                 else:new_flag=segment.flag
-
-                if "ZS" in [tag[0] for tag in tags]:
-                    for tag, value in tags:
-                        if tag == "ZS":
-                            ts_value = value
-                            if ts_value=='++':new_ts='--'
-                            elif ts_value=='+-':new_ts='-+'
-                            elif ts_value=='-+':new_ts='+-'
-                            elif ts_value=='--':new_ts='++'
-                segment_output.set_tag("ZS", new_ts, value_type="Z")
-                if "XR" in [tag[0] for tag in tags]:
-                    for tag, value in tags:
-                        if tag == "XR":
-                            xr_value = value
-                            xr_value = xr_value.upper()
-                            new_xr=reverse_complement(xr_value)
-                            new_xr=new_xr[:2].lower() + new_xr[2:-2] + new_xr[-2:].lower()
-                    segment_output.set_tag("XR", new_xr, value_type="Z")
+                if trans_dir == "-":
+                    if "ZS" in [tag[0] for tag in tags]:
+                        for tag, value in tags:
+                            if tag == "ZS":
+                                ts_value = value
+                                if ts_value=='++':new_ts='-+'
+                                elif ts_value=='+-':new_ts='--'
+                                elif ts_value=='-+':new_ts='++'
+                                elif ts_value=='--':new_ts='+-'
+                    segment_output.set_tag("ZS", new_ts, value_type="Z")
+                    if "XR" in [tag[0] for tag in tags]:
+                        for tag, value in tags:
+                            if tag == "XR":
+                                xr_value = value
+                                xr_value = xr_value.upper()
+                                new_xr=reverse_complement(xr_value)
+                                new_xr=new_xr[:2].lower() + new_xr[2:-2] + new_xr[-2:].lower()
+                        segment_output.set_tag("XR", new_xr, value_type="Z")
 
                 segment_output.query_name = segment.query_name
                 segment_output.flag = new_flag
