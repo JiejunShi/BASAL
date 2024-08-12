@@ -5,7 +5,7 @@ FLAGS= -DMAXHITS=1000 -DTHREAD -funroll-loops -Lsamtools -Isamtools -Lgzstream -
 
 THREAD=	-lpthread
 
-SOURCE = align dbseq main pairs param reads utilities
+SOURCE = align refbase main pairs param reads utilities
 OBJS1= $(patsubst %,%.o,$(SOURCE))
 
 all: basal
