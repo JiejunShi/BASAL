@@ -374,12 +374,13 @@ def Out_base_ratio(tsv_prefix,wig_prefix,wig_bin,min_depth,ref,refmark,handle_SN
                 else: d = dd#float(dd)
             else: d = dd#float(dd)
 
-            if seq_context != []:
-                if refmarkcr[i] not in seq_context: continue
-                else:seq = seq_context_str[refmarkcr[i]-1]
-            else:
-                if refcr[i] == convert_from_base:seq=refcr[i-motif_length:i+motif_length+1]
-                else:seq=reverse_complement(refcr[i-motif_length:i+motif_length+1])
+            # for C2T, candidate site not in defined context (-x) is excluded
+            if seq_context != [] and refmarkcr[i] not in seq_context:continue
+
+            # for any conversion, output motif sequence
+            if refcr[i] == convert_from_base:seq=refcr[i-motif_length:i+motif_length+1]
+            else:seq=reverse_complement(refcr[i-motif_length:i+motif_length+1])
+
             if refcr[i] == convert_from_base:strand = '+'
             else:strand = '-'
 
