@@ -147,35 +147,6 @@ def Load_One_Read(line,ref,coverage,sam_format,molecule_type,aligner,unique,pair
     if trim_fillin > 0: # trim fill in nucleotides
         if strand == '+-' or strand == '-+': seq = seq[:-trim_fillin]
         elif strand == '++' or strand == '--': seq, pos = seq[trim_fillin:], pos+trim_fillin
-    # remove overlapped regions in paired hits, SAM/BAM format only
-    # if sam_format and insert > 0: seq = seq[:int(col[7])-1-pos] # by yxi
-    # pair on +
-    #         |------->
-    # pair on -, 6 senarios
-    # 1: <--|                   # keep pair on +/- (reported as unpaired in BASAL)
-    # 2: <-------|              # trim pair on + (left part), keep pair on -
-    # 3: <--------------|       # delete pair on +, keep pair on -
-    # 4:        <--|            # delete pair on - (not feasible now), keep pair on +
-    # 5:        <-------|       # trim pair on +(right part), keep pair on -
-    # 6:               <--|     # keep pair on +/-
-    if sam_format:
-        if strand == '++' or strand == '--':
-            if insert > 0: # pair on + has smaller 5', senario 2/3/4/5/6
-                if pos < pos_mate:# senario 4/5/6
-                    if insert > len(seq):# senario 5/6
-                        seq = seq[:pos_mate-pos]
-                else:# senario 2/3
-                    if insert >= len(seq):# senario 3
-                        return []
-                    else:# senario 2
-                        seq = seq[insert:]
-                        pos = pos+insert
-    # unable to calculate seq_mate from seq, cannot delete pair on - for senario 4, only feasible with name-sorted bam
-    #    elif strand == '+-' or strand == '-+':
-    #        if insert < 0: # pair on - has bigger 5', senario 2/3/4/5/6
-    #            if pos > pos_mate:# senario 4/5/6
-    #                if abs(insert) > len(seq_mate):# senario 4
-    #                    return []
     if molecule_type=="DNA":
         return (seq, strand[0], cr, pos)
     else:
