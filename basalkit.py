@@ -8,7 +8,7 @@ from collections import OrderedDict
 from basalkit_functions import *
 import pysam
 
-version="1.8"
+version="1.8.1"
 
 ScriptName=re.split('/', sys.argv[0])[-1]
 cmds=OrderedDict([("avgmod","Calculate average modification level(AvgMod) of tested nucleotide(e.g. 5mC/6mA)"),\
