@@ -8,13 +8,13 @@
 basal -p {CORES} \
 -a {input.fq.gz} -d {genome.fa} \
 -o {map2genome.bam} \
--M T:- -n 1 -g 3 -R -S 2024 -u
+-M T:- -n 1 -g 3 -R -u
 # {CORES}: core number used
 # {input.fq.gz}: pre-processed read file (.fq.gz)
 # {genome.fa}: genome fasta file
 # {map2genome.bam}: output bam file (.bam)
 
-# reads successfully aligned to genome were extracted
+# extract reads aligned to genome
 samtools view -b -F 3588 -@ {CORES} -o {tmp.bam} {map2genome.bam}
 sambamba sort -m 8GB -t {CORES} -o {genomeAlign.bam} {tmp.bam}
 # {CORES}: core number
@@ -22,7 +22,7 @@ sambamba sort -m 8GB -t {CORES} -o {genomeAlign.bam} {tmp.bam}
 # {tmp.bam}: temperory file
 # {genomeAlign.bam}: output reads mapped to genome (.bam)
 
-# reads that were not aligned to the genome were extracted
+# extract reads not aligned to genome
 samtools view -b --include-flags 4 -@{CORES} -o {unmap2genome.bam} {map2genome.bam}
 samtools fastq {unmap2genome.bam} > {unmap2genome.fq}
 gzip {unmap2genome.fq}
@@ -35,7 +35,7 @@ gzip {unmap2genome.fq}
 basal -p {CORES} \
 -a {unmap2genome.fq.gz} -d {transcriptome.fa} \
 -o {tmp.bam} \
--M T:- -n 1 -g 3 -R -S 2024;
+-M T:- -n 1 -g 3 -R;
 # {CORES}: core number used
 # {unmap2genome.fq.gz}: input reads unmapped to genome (.fq.gz)
 # {transcriptome.fa}: transcriptome fasta file
