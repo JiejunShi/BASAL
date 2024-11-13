@@ -2,6 +2,7 @@
 #===for Ψ=====
 
 # 1 Prepare your reads after trimming
+
 # 2 Mapping reads
 ## 2.1 Mapping reads to genome
 basal -p {CORES} \
@@ -23,7 +24,7 @@ sambamba sort -m 8GB -t {CORES} -o {output.genomeAlign.bam} {output.tmp.bam}
 
 # reads that were not successfully matched to the genome were extracted
 samtools view -b --include-flags 4 -@{CORES} -o {output.unmap2genome.bam} {input.map2genome.bam}
-samtools fastq {output.unmap2genome.bam} > {output.unmap2genome.fq}
+samtools fastq {input.unmap2genome.bam} > {output.unmap2genome.fq}
 gzip {output.unmap2genome.fq}
 # {CORES}: core number used
 # {input.map2genome.bam}: input map to genome bam file with BASAL (.bam)
