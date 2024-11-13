@@ -16,6 +16,7 @@ basal -p {CORES} \
 
 # reads that were successfully matched to the genome were extracted
 samtools view -b -F 3588 -@ {CORES} -o {output.genomeAlign.bam} {input.map2genome.bam}
+sambamba sort -m 8GB -t {CORES} -o {output.srt.bam} {input.genomeAlign.bam};mv {input.srt.bam} {output.genomeAlign.bam};
 samtools view -b --include-flags 4 -@ {CORES} -o {output.unmap2genome.bam} {input.map2genome.bam}
 # {CORES}: core number used
 # {input.map2genome.bam}: input map to genome bam file with BASAL (.bam)
