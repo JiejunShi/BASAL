@@ -2,6 +2,7 @@
 #===for m6A=====
 
 # 1 Prepare your reads after trimming
+
 # 2 Mapping reads
 ## 2.1 Mapping reads to genome
 basal -p {CORES} \
@@ -15,12 +16,13 @@ basal -p {CORES} \
 
 # reads that were successfully matched to the genome were extracted
 samtools view -b -F 3588 -@ {CORES} -o {output.genomeAlign.bam} {input.map2genome.bam}
-sambamba sort -m 8GB -t {CORES} -o {output.srt.bam} {input.genomeAlign.bam};mv {input.srt.bam} {output.genomeAlign.bam};
+sambamba sort -m 8GB -t {CORES} -o {output.tmp.bam} {input.genomeAlign.bam};mv {input.tmp.bam} {output.genomeAlign.bam};
 samtools view -b --include-flags 4 -@ {CORES} -o {output.unmap2genome.bam} {input.map2genome.bam}
 # {CORES}: core number used
 # {input.map2genome.bam}: input map to genome bam file with BASAL (.bam)
 # {output.tmp.bam}: temperory file
 # {output.genomeAlign.bam}: output map to genome sorted BAM file (.bam)
+# {output.unmap2genome.bam}: output unmap to genome bam file (.bam)
 
 ## 2.2 Mapping reads to transcriptome
 basal -p {CORES} \
@@ -31,7 +33,6 @@ basal -p {CORES} \
 # {input.unmap2genome.bam}: input unmap to genome bam file (.bam)
 # {transcriptome.fa}: transcriptome fasta file
 # {output.trxptomeAlign.bam}: output map to transcriptome sorted BAM file (.bam)
-
 
 ## 2.3 merge genome and transcriptome bam file
 basalkit mergeBAM {input.trxptomeAlign.bam} {input.genomeAlign.bam} \
@@ -55,6 +56,6 @@ basalkit avgmod {input.merge.sorted.bam} {genome.fa} \
 ## 3.2 measure p-value and FDR with basalkit "fdr"
 basalkit fdr {input.treat_AvgMod.tsv.gz} -c {input.ctrl_AvgMod.tsv.gz} \
 -o {output_prefix}
-# {input.treat_AvgMod.tsv}: input treat AvgMod file
-# {input.ctrl_AvgMod.tsv}: input ctrl AvgMod file
+# {input.treat_AvgMod.tsv.gz}: input treat AvgMod file
+# {input.ctrl_AvgMod.tsv.gz}: input ctrl AvgMod file
 # {output_prefix}: output file prefix (_FDR.tsv.gz)
