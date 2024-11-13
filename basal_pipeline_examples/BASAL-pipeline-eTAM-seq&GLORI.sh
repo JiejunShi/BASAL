@@ -52,7 +52,7 @@ basalkit avgmod {merged.sorted.bam} {genome.fa} \
 # {genome.fa}: genome fasta file
 # {treat|ctrl}: output avgmod file prefix (_AvgMod.tsv)
 
-## 3.2 calculate p-value and FDR with basalkit "fdr"
+## 3.2 perform significant test of Treat vs Ctrl and calculate FDR
 basalkit fdr {treat_AvgMod.tsv.gz} -c {ctrl_AvgMod.tsv.gz} \
 -o {output_FDR}
 # {treat_AvgMod.tsv.gz}: input AvgMod file in treat
