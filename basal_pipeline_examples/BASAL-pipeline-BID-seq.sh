@@ -48,9 +48,9 @@ sambamba sort -m 8GB -t {CORES} -o {trxptomeAlign.bam} {tmp.bam};
 # {tmp.bam}: temperory file from last step
 
 ## 2.3 CIGAR correction for consecutive pU ('-R' must be used in basal)
-basalkit shiftD {genomeAlign.bam} -o {tmp}
+python basalkit.py shiftD {genomeAlign.bam} -o {tmp}
 sambamba sort -m 8GB -t {CORES} -o {genomeAlign.corrected.bam} {tmp}
-basalkit shiftD {trxptomeAlign.bam} -o {tmp}
+python basalkit.py shiftD {trxptomeAlign.bam} -o {tmp}
 sambamba sort -m 8GB -t {CORES} -o {trxptomeAlign.corrected.bam} {tmp}
 # {CORES}: core number
 # {output.tmp}: temperory file
@@ -58,7 +58,7 @@ sambamba sort -m 8GB -t {CORES} -o {trxptomeAlign.corrected.bam} {tmp}
 # {trxptomeAlign.corrected.bam}: output corrected transcriptome reads (.bam)
 
 ## 2.4 merge genome and transcriptome bam file
-basalkit mergeBAM {trxptomeAlign.corrected.bam} {genomeAlign.corrected.bam} \
+python basalkit.py mergeBAM {trxptomeAlign.corrected.bam} {genomeAlign.corrected.bam} \
 {gtf} \
 -o {output_prefix}
 # {trxptomeAlign.corrected.bam}: transcriptome bam file(.bam)
@@ -68,7 +68,7 @@ basalkit mergeBAM {trxptomeAlign.corrected.bam} {genomeAlign.corrected.bam} \
 
 # 3 measure sites ratio
 ## 3.1 measure average modification with basalkit "avgmod"
-basalkit avgmod {merge.bam} {genome.fa} \ 
+python basalkit.py avgmod {merge.bam} {genome.fa} \ 
 -o {output_prefix} \ 
 -M T:- -D M -T RNA -y 7
 # {merge.bam}: input merged bam file (.bam)
@@ -76,7 +76,7 @@ basalkit avgmod {merge.bam} {genome.fa} \
 # {treat|ctrl}: output avgmod file prefix (_AvgMod.tsv)
 
 ## 3.2 perform significant test of Treat vs Ctrl and calculate FDR
-basalkit fdr {treat_AvgMod.tsv.gz} -c {ctrl_AvgMod.tsv.gz} \
+python basalkit.py fdr {treat_AvgMod.tsv.gz} -c {ctrl_AvgMod.tsv.gz} \
 -o {output_FDR}
 # {treat_AvgMod.tsv.gz}: input AvgMod file in treat
 # {ctrl_AvgMod.tsv.gz}: input AvgMod file in ctrl
