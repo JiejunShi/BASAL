@@ -115,3 +115,8 @@ Identifying credible modification sites often involves statistical comparisons b
 
 #### BASALkit - regmod
 Beyond individual site analysis, DNA/RNA modification studies often assess the average modification level across genes or regions. The `regmod` module facilitates this, extracting convert-to base frequency and sequencing depth for all modification sites within a specified region, determining the region's average modification level as the ratio of their respective sums.
+
+## Citation
+Please cite the following paper if you use BASAL:
+
+Xu, M. *et al*. BASAL: a universal mapping algorithm for nucleotide base-conversion sequencing. [***Nucleic Acids Research*** (2024).](https://doi.org/10.1093/nar/gkae1201)
