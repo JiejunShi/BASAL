@@ -36,7 +36,7 @@ basal -p {CORES} \
 # {trxptomeAlign.bam}: output reads map to transcriptome (.bam)
 
 ## 2.3 merge genome and transcriptome bam file
-basalkit mergeBAM {trxptomeAlign.bam} {genomeAlign.bam} \
+python basalkit.py mergeBAM {trxptomeAlign.bam} {genomeAlign.bam} \
 {gtf} \
 -o {merged}
 # {trxptomeAlign.bam}: input transcriptome bam file(.bam)
@@ -46,7 +46,7 @@ basalkit mergeBAM {trxptomeAlign.bam} {genomeAlign.bam} \
 
 # 3 modification sites detection
 ## 3.1 measure average modification level of each site
-basalkit avgmod {merged.sorted.bam} {genome.fa} \ 
+python basalkit.py avgmod {merged.sorted.bam} {genome.fa} \ 
 -o {treat|ctrl} \ 
 -M A:G
 # {merged.bam}: input merge bam file (.bam)
@@ -54,7 +54,7 @@ basalkit avgmod {merged.sorted.bam} {genome.fa} \
 # {treat|ctrl}: output avgmod file prefix (_AvgMod.tsv)
 
 ## 3.2 perform significant test of Treat vs Ctrl and calculate FDR
-basalkit fdr {treat_AvgMod.tsv.gz} -c {ctrl_AvgMod.tsv.gz} \
+python basalkit.py fdr {treat_AvgMod.tsv.gz} -c {ctrl_AvgMod.tsv.gz} \
 -o {output_FDR}
 # {treat_AvgMod.tsv.gz}: input AvgMod file in treat
 # {ctrl_AvgMod.tsv.gz}: input AvgMod file in ctrl
