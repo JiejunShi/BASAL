@@ -119,4 +119,4 @@ Beyond individual site analysis, DNA/RNA modification studies often assess the a
 ## Citation
 Please cite the following paper if you use BASAL:
 
-Xu, M. *et al*. BASAL: a universal mapping algorithm for nucleotide base-conversion sequencing. [***Nucleic Acids Research*** (2024).](https://doi.org/10.1093/nar/gkae1201)
+Moping Xu#, Xiaoyang Liu#, Miao Wang#, Tingting Luo, Yawei Gao, Jun Liu*, Jiejun Shi*. BASAL: a universal mapping algorithm for nucleotide base-conversion sequencing. [***Nucleic Acids Research*** (2024).](https://doi.org/10.1093/nar/gkae1201)
