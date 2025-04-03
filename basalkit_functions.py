@@ -731,8 +731,7 @@ def calc_pval(treat,ctrl,output_prefix,min_depth,method,fdr_method):
             elif method == "poisson":
                 pvalue = scipy.stats.poisson.sf(N_mod, int(math.ceil(ctrl_CR * N_total)))
             elif method == "fisher":
-                #pvalue = scipy.stats.fisher_exact(table=[[N_mod, N_total-N_mod], [N_mod_ctrl, N_total_ctrl-N_mod_ctrl]], alternative='greater')
-                test_statistic, pvalue = scipy.stats.fisher_exact(table=[[N_mod, N_total-N_mod], [N_mod_ctrl, N_total_ctrl-N_mod_ctrl]], alternative='greater')
+                pvalue = scipy.stats.fisher_exact(table=[[N_mod,N_total-N_mod],[N_mod_ctrl,N_total_ctrl-N_mod_ctrl]],alternative='greater')
                 pvalue = pvalue.pvalue
             pvalue_col.append(pvalue)
             outfile.write('{}\t{}\t{}\t{}\t{:.3f}\t{:.2f}\t{}\t{}\t{:.3f}\t{:.3e}\n'.format(row['chr'],row['pos'],row['strand'],row['context'],row['ratio'],row['eff_coverage'],row['N_mod'],row['N_total'],ctrl_CR,pvalue))
@@ -760,8 +759,7 @@ def calc_pval(treat,ctrl,output_prefix,min_depth,method,fdr_method):
             elif method == "poisson":
                 pvalue = scipy.stats.poisson.sf(N_mod, int(math.ceil(ctrl_CR * N_total)))
             elif method == "fisher":
-                #pvalue = scipy.stats.fisher_exact(table=[[N_mod, N_total-N_mod], [N_mod_ctrl, N_total_ctrl-N_mod_ctrl]], alternative='greater')
-                test_statistic, pvalue = scipy.stats.fisher_exact(table=[[N_mod, N_total-N_mod], [N_mod_ctrl, N_total_ctrl-N_mod_ctrl]], alternative='greater')
+                pvalue = scipy.stats.fisher_exact(table=[[N_mod,N_total-N_mod],[N_mod_ctrl,N_total_ctrl-N_mod_ctrl]],alternative='greater')
                 pvalue = pvalue.pvalue
             pvalue_col.append(pvalue)
             outfile.write('{}\t{}\t{}\t{}\t{:.3f}\t{:.2f}\t{}\t{}\t{}\t{}\t{:.3f}\t{:.3e}\n'.format(row_treat['chr'],row_treat['pos'],row_treat['strand'],row_treat['context'],row_treat['ratio'],row_treat['eff_coverage'],row_treat['N_mod'],row_treat['N_total'],N_mod_ctrl,N_total_ctrl,ctrl_CR,pvalue))
