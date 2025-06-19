@@ -197,7 +197,7 @@ def main(cmd=''):
         # Create arrays
         coverage, meth0 = {}, {}
         for cr in ref:
-            meth0[cr] = array.array('H', [0]) * len(ref[cr])
+            meth0[cr] = array.array('I', [0]) * len(ref[cr])
             if args.rm_dup==True:
                 coverage[cr] = array.array('B', [0]) * len(ref[cr])
         depth=deepcopy(meth0)
