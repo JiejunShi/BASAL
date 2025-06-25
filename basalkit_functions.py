@@ -203,7 +203,8 @@ def Load_Alignment(ifiles,convert_from_base,convert_to_base,conversion_mode,mole
                 depth_cr = depth[cr];
                 meth0_cr = meth0[cr];
                 for index in indexes:
-                    if (refmarkcr=={} or (refmarkcr[index+pos] in seq_context)) and depth_cr[index+pos] < (2**16-1):
+                    # if (refmarkcr=={} or (refmarkcr[index+pos] in seq_context)) and depth_cr[index+pos] < (2**16-1):
+                    if refmarkcr == {} or (refmarkcr[index+pos] in seq_context):
                         if seq[index] in unmodified:
                             depth_cr[index+pos] += 1
                         elif seq[index] in modified:
@@ -219,7 +220,8 @@ def Load_Alignment(ifiles,convert_from_base,convert_to_base,conversion_mode,mole
                 depth_ct_cr = depth_ct[cr];
                 meth_ct_cr = meth_ct[cr];
                 for index in indexes:
-                    if (refmarkcr=={} or (refmarkcr[index+pos] in seq_context)) and depth_ct_cr[index+pos] < (2**16-1):
+                    # if (refmarkcr=={} or (refmarkcr[index+pos] in seq_context)) and depth_ct_cr[index+pos] < (2**16-1):
+                    if refmarkcr == {} or (refmarkcr[index+pos] in seq_context):
                         if seq[index] in unmodified_rc:
                             depth_ct_cr[index+pos] += 1
                         elif seq[index] in modified_rc:
