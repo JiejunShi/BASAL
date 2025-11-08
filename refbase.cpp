@@ -112,7 +112,7 @@ void RefSeq::UnmaskRegion() {
 		if(b.begin > _length) break;
 		b.end=_seq.find_first_of(param.nx_nt, b.begin);
 		b.end = (b.end<=_length? b.end : _length);
-		if(b.end-b.begin <30) continue;
+		if(b.end-b.begin <16) continue;
 		if((!_blocks.empty()) && (b.id==_blocks[_blocks.size()-1].id)
 			&& (b.begin - _blocks[_blocks.size()-1].end <5))
 			_blocks[_blocks.size()-1].end=b.end;

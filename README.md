@@ -1,9 +1,16 @@
 # BAse-conversion Sequencing ALigner (BASAL)
 Nucleotide modifications, encompassing both RNA and DNA modifications, play a pivotal role in gene transcription regulation. To pinpoint the modified sites, a variety of Base Conversion (BC) methods have been introduced. These BC methods can be categorized into three types: (1) one-way conversion, such as C-to-T for 5mC detection, or A-to-G for m6A detection; (2) multi-way conversion, such as converting A to C/G/T for m1A detection; and (3) deletion-induced conversion, such as U-to-deletion conversion for pseudouridine detection. These methods, particularly effective when coupled with sequencing, offer single-base resolution, surpassing immunoprecipitation-based techniques.
 
-However, these evolving BC methods present significant data analysis challenges, with no single bioinformatic tool capable of handling the diversity of data produced. The primary hurdle is reads mapping, with two main strategies: the "mutation-rate approach" and the "conversion-sensitive approach." The former often results in misalignment or the erroneous discard of reads due to treating converted bases as mismatches, while the latter, though more logical, lacks tools support the wide array of BC methods, especially those involving multi-way or deletion-induced conversions.
+However, these evolving BC methods present significant data analysis challenges, with no single bioinformatic tool capable of handling the diversity of data produced. The primary hurdle is reads mapping, with two main strategies: the "mutation-rate approach" and the "conversion-sensitive approach."(**Fig 1**) The former often results in misalignment or the erroneous discard of reads due to treating converted bases as mismatches, while the latter, though more logical, lacks tools support the wide array of BC methods, especially those involving multi-way or deletion-induced conversions.
+<div align=center><img src="https://github.com/JiejunShi/BASAL/blob/main/media/mapping_strategies.png" /></div>  
 
-To address these challenges, we have introduced BASAL (BAse-conversion Sequencing ALigner), leveraging bitwise masking technology to support the analysis of diverse BC methods. BASAL has demonstrated superior performance in mapping accuracy and efficiency over existing tools, excelling at identifying reliable modification sites, and uncovering cell clusters and trajectories in single-cell epitranscriptomic data that align with biological functions. This breakthrough positions BASAL as a universal tool for analyzing various RNA and DNA modification detection technologies, facilitating groundbreaking discoveries in epigenomics and epitranscriptomics.
+**Fig 1. Illustration of the differences between mutation-rate strategy and conversion-sensitive strategy in mapping BC sequencing reads using m6A sequencing (A is converted to G, while m6A is not converted) as an example.**
+
+To address these challenges, we have introduced BASAL (BAse-conversion Sequencing ALigner), leveraging bitwise masking technology to support the analysis of diverse BC methods (**Fig 2**). BASAL has demonstrated superior performance in mapping accuracy and efficiency over existing tools, excelling at identifying reliable modification sites, and uncovering cell clusters and trajectories in single-cell epitranscriptomic data that align with biological functions. This breakthrough positions BASAL as a universal tool for analyzing various RNA and DNA modification detection technologies, facilitating groundbreaking discoveries in epigenomics and epitranscriptomics.
+<div align=center><img src="https://github.com/JiejunShi/BASAL/blob/main/media/BASAL_algorithm.png" /></div>  
+
+**Fig 2. The principle and compatibility of BASAL.**  
+**(a)** Illustrations of different conversion modes used by base conversion (BC) sequencing techniques. Since RNA is reverse transcribed into DNA during sequencing, uridines are represented by thymidines (T). **(b)** The principle of the BASAL algorithm. **(c)** An example demonstrating how BASAL calculates the penalty score for one-way conversion data. **(d)** Using the same example as in (c) to explain how BASAL maps the multi-way conversion data. **(e)** Comparison of compatibility among aligners currently used in BC sequencing data mapping.
 
 ## Authors
 - Jiejun Shi
@@ -38,7 +45,6 @@ No installation needed for BASALkit.
 	                    -M A:G, can detect A>G conversion in RNA m6A seq(e.g. GLORI) or DNA 6mA seq(e.g. NT-seq)
 	                    -M A:CGT, can detect RNA m6A in m6A-SAC-seq, which convert A to C/G/T
 	                    -M T:-, can detect pseudouridine in BID-seq, which convert pseudouridine to deletion
-	                    -M G:ACT-, can detect RNA m7G in m7G-quant-seq, which convert G to A/C/T/deletion
 
 	  Options for alignment:
 	       -v  <float>  maximum percentage/number of mismatch bases in each read. (default: 0.1)
@@ -92,11 +98,11 @@ The executable script is `basalkit.py`. The other one, `basalkit_functions.py`, 
 	  python basalkit.py <Function> -h
 
 	Availible Functions:
-    mergeBAM	Transfer the transcriptome BAM file to genome positions, and then merge it with the genome BAM file. This function is designed for RNA modification sequencing.
+		mergeBAM	Transfer the transcriptome BAM file to genome positions, and then merge it with the genome BAM file. This function is designed for RNA modification sequencing.
 		avgmod	Calculate average modification level(AvgMod) of tested nucleotide(e.g. 5mC/6mA)
 		fdr	Perform significance test between treatment and control/background, and report FDR for each sites
 		regmod	Summarise the modification level of given regions
-    shiftD	Shift the position of D in CIGAR in bam/sam. For deletion-induced techniques(e.g. BID-seq), if a deletion is detected in a polymer of convert-from bases, it is re-assigned to the rightmost base of the polymer.
+		shiftD	Shift the position of D in CIGAR in bam/sam. For deletion-induced techniques(e.g. BID-seq), if a deletion is detected in a polymer of convert-from bases, it is re-assigned to the rightmost base of the polymer.
 
 #### BASALkit - mergeBAM
 The `mergeBAM` module, specialized for RNA modification data, merges two-step alignment results and converts transcriptome alignment coordinates to genomic coordinates using the transcriptome annotation file. Reads spanning introns have their CIGAR values in the BAM file adjusted to reflect RNA splicing. CIGAR, an acronym for Concise Idiosyncratic Gapped Alignment Report, documents alignment discrepancies. The converted transcriptome alignments are then merged with genomic alignments into a single BAM file.
@@ -109,3 +115,8 @@ Identifying credible modification sites often involves statistical comparisons b
 
 #### BASALkit - regmod
 Beyond individual site analysis, DNA/RNA modification studies often assess the average modification level across genes or regions. The `regmod` module facilitates this, extracting convert-to base frequency and sequencing depth for all modification sites within a specified region, determining the region's average modification level as the ratio of their respective sums.
+
+## Citation
+Please cite the following paper if you use BASAL:
+
+Moping Xu#, Xiaoyang Liu#, Miao Wang#, Tingting Luo, Yawei Gao, Jun Liu*, Jiejun Shi*. BASAL: a universal mapping algorithm for nucleotide base-conversion sequencing. [***Nucleic Acids Research*** (2024).](https://doi.org/10.1093/nar/gkae1201)

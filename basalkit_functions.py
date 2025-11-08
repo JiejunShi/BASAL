@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import multiprocessing as mp
 import os,re,sys,time
-from collections import Counter,defaultdict,OrderedDict
+from collections import defaultdict,OrderedDict
 import numpy as np
 import pandas as pd
 import math
@@ -94,7 +93,7 @@ def strand_gemBS2basal(XB,sam_flag):
         elif XB == "G": return "-+"
     else: return ""
 
-def Load_One_Read(line,ref,coverage,sam_format,molecule_type,aligner,unique,pair,rm_dup,trim_fillin,chroms,ZSselect):
+def Load_One_Read(line,ref,coverage,sam_format,molecule_type,aligner,unique,pair,rm_dup,trim_fillin,chroms):
     col = line.split('\t')
     if sam_format:
         if line[0] == '@': return []
@@ -137,7 +136,7 @@ def Load_One_Read(line,ref,coverage,sam_format,molecule_type,aligner,unique,pair
             if gap_size < 0: seq = seq[:gap_pos] + seq[gap_pos-gap_size:]  # insertion on reference (deletion?)
             else: seq = seq[:gap_pos] + '-' * gap_size + seq[gap_pos:]
 
-    if strand not in ZSselect:return []
+    if strand not in ['++',"-+","+-","--"]:return []
     pos2 = pos + len(seq)
     if pos2 >= len(ref[cr]): return []
     if strand == '+-' or strand == '-+': frag_end, direction = pos2, 2
@@ -148,35 +147,6 @@ def Load_One_Read(line,ref,coverage,sam_format,molecule_type,aligner,unique,pair
     if trim_fillin > 0: # trim fill in nucleotides
         if strand == '+-' or strand == '-+': seq = seq[:-trim_fillin]
         elif strand == '++' or strand == '--': seq, pos = seq[trim_fillin:], pos+trim_fillin
-    # remove overlapped regions in paired hits, SAM/BAM format only
-    # if sam_format and insert > 0: seq = seq[:int(col[7])-1-pos] # by yxi
-    # pair on +
-    #         |------->
-    # pair on -, 6 senarios
-    # 1: <--|                   # keep pair on +/- (reported as unpaired in BASAL)
-    # 2: <-------|              # trim pair on + (left part), keep pair on -
-    # 3: <--------------|       # delete pair on +, keep pair on -
-    # 4:        <--|            # delete pair on - (not feasible now), keep pair on +
-    # 5:        <-------|       # trim pair on +(right part), keep pair on -
-    # 6:               <--|     # keep pair on +/-
-    if sam_format:
-        if strand == '++' or strand == '--':
-            if insert > 0: # pair on + has smaller 5', senario 2/3/4/5/6
-                if pos < pos_mate:# senario 4/5/6
-                    if insert > len(seq):# senario 5/6
-                        seq = seq[:pos_mate-pos]
-                else:# senario 2/3
-                    if insert >= len(seq):# senario 3
-                        return []
-                    else:# senario 2
-                        seq = seq[insert:]
-                        pos = pos+insert
-    # unable to calculate seq_mate from seq, cannot delete pair on - for senario 4, only feasible with name-sorted bam
-    #    elif strand == '+-' or strand == '-+':
-    #        if insert < 0: # pair on - has bigger 5', senario 2/3/4/5/6
-    #            if pos > pos_mate:# senario 4/5/6
-    #                if abs(insert) > len(seq_mate):# senario 4
-    #                    return []
     if molecule_type=="DNA":
         return (seq, strand[0], cr, pos)
     else:
@@ -187,7 +157,7 @@ def Load_One_Read(line,ref,coverage,sam_format,molecule_type,aligner,unique,pair
         #elif direction==2:
             return (seq, "-", cr, pos)
 
-def Load_Alignment(ifiles,convert_from_base,convert_to_base,conversion_mode,molecule_type,aligner,camda,ref,refmark,coverage,meth0,meth1,depth,meth_ct,depth_ct,sam_path,unique,pair,rm_dup,trim_fillin,chroms,seq_context,handle_SNP,converted_site,mapping_strand):
+def Load_Alignment(ifiles,convert_from_base,convert_to_base,conversion_mode,molecule_type,aligner,ref,refmark,coverage,meth0,depth,meth_ct,depth_ct,sam_path,unique,pair,rm_dup,trim_fillin,chroms,seq_context,handle_SNP,converted_site):
     pipes = []
     for ifile in ifiles:
         if ifile[-4:].upper() == '.SAM': sam_format, fin = True, open(ifile)
@@ -202,12 +172,6 @@ def Load_Alignment(ifiles,convert_from_base,convert_to_base,conversion_mode,mole
         conversion_rule = {'+': (convert_from_base,[convert_from_base],convert_to_base,complement[convert_from_base],[complement[convert_from_base]],convert_to_base_cp), '-': (complement[convert_from_base],[complement[convert_from_base]],convert_to_base_cp,convert_from_base,[convert_from_base],convert_to_base)}
     elif conversion_mode == "M":# TAPS mode
         conversion_rule = {'+': (convert_from_base,convert_to_base,[convert_from_base],complement[convert_from_base],convert_to_base_cp,[complement[convert_from_base]]), '-': (complement[convert_from_base],convert_to_base_cp,[complement[convert_from_base]],convert_from_base,convert_to_base,[convert_from_base])}
-    if mapping_strand==0:
-        ZSselect=["++","-+"]
-    elif mapping_strand==1:
-        ZSselect=["++","-+","+-","--"]
-    else:
-        ZSselect=["+-","--"]
 
     nmap = 0
     for ifile, sam_format, fin in pipes:
@@ -215,7 +179,7 @@ def Load_Alignment(ifiles,convert_from_base,convert_to_base,conversion_mode,mole
         nline = 0
         for line in fin:
             nline += 1
-            map_info = Load_One_Read(line,ref,coverage,sam_format,molecule_type,aligner,unique,pair,rm_dup,trim_fillin,chroms,ZSselect)
+            map_info = Load_One_Read(line,ref,coverage,sam_format,molecule_type,aligner,unique,pair,rm_dup,trim_fillin,chroms)
             if len(map_info) == 0: continue
             seq, strand, cr, pos = map_info
             pos2 = pos + len(seq)
@@ -224,7 +188,6 @@ def Load_Alignment(ifiles,convert_from_base,convert_to_base,conversion_mode,mole
             refseq, refmarkcr = ref[cr], {}
             if refmark!={}:refmarkcr=refmark[cr]
             indexes=[];n_covered_1read=0;n_converted_1read=0;
-            if camda==True:read_modified=False
             for index in re.finditer(raw,refseq[pos:pos2]):
                 n_covered_1read += 1
                 index0=index.span()[0]
@@ -232,8 +195,6 @@ def Load_Alignment(ifiles,convert_from_base,convert_to_base,conversion_mode,mole
                 if seq[index0] in unmodified and conversion_mode == "U":n_converted_1read += 1
                 if seq[index0] in modified:
                     if conversion_mode == "M":n_converted_1read += 1
-                    if camda==True and read_modified==False:
-                        if refmarkcr=={} or (refmarkcr[index0+pos] in seq_context):read_modified=True
             if converted_site>=1:
                 if n_converted_1read < converted_site:continue
             else:
@@ -241,19 +202,14 @@ def Load_Alignment(ifiles,convert_from_base,convert_to_base,conversion_mode,mole
             if n_covered_1read>0:
                 depth_cr = depth[cr];
                 meth0_cr = meth0[cr];
-                if camda==True:meth1_cr = meth1[cr];
                 for index in indexes:
-                    if (refmarkcr=={} or (refmarkcr[index+pos] in seq_context)) and depth_cr[index+pos] < (2**16-1):
+                    # if (refmarkcr=={} or (refmarkcr[index+pos] in seq_context)) and depth_cr[index+pos] < (2**16-1):
+                    if refmarkcr == {} or (refmarkcr[index+pos] in seq_context):
                         if seq[index] in unmodified:
                             depth_cr[index+pos] += 1
-                            if camda==True:
-                                if read_modified==True:
-                                    meth1_cr[index+pos] += 1
                         elif seq[index] in modified:
                             depth_cr[index+pos] += 1
                             meth0_cr[index+pos] += 1
-                            if camda==True:
-                                meth1_cr[index+pos] += 1
             if handle_SNP == 0: continue
             # use G/GA on reverse strand to adjust eff_CT_counts = CT_counts * (rev_G_counts / rev_GA_counts)
             indexes=[]
@@ -264,7 +220,8 @@ def Load_Alignment(ifiles,convert_from_base,convert_to_base,conversion_mode,mole
                 depth_ct_cr = depth_ct[cr];
                 meth_ct_cr = meth_ct[cr];
                 for index in indexes:
-                    if (refmarkcr=={} or (refmarkcr[index+pos] in seq_context)) and depth_ct_cr[index+pos] < (2**16-1):
+                    # if (refmarkcr=={} or (refmarkcr[index+pos] in seq_context)) and depth_ct_cr[index+pos] < (2**16-1):
+                    if refmarkcr == {} or (refmarkcr[index+pos] in seq_context):
                         if seq[index] in unmodified_rc:
                             depth_ct_cr[index+pos] += 1
                         elif seq[index] in modified_rc:
@@ -272,7 +229,7 @@ def Load_Alignment(ifiles,convert_from_base,convert_to_base,conversion_mode,mole
                             meth_ct_cr[index+pos] += 1
         fin.close()
         disp('Read {} lines'.format(nline))
-    return meth0,meth1,depth,meth_ct,depth_ct,nmap
+    return meth0,depth,meth_ct,depth_ct,nmap
 
 def rightmostD(cigar,XR,convert_from_base):
     cigarRE = re.compile(r'\d+[a-zA-Z]')
@@ -312,7 +269,7 @@ def shiftD(Alignments,output,convert_from_base,sam_path):
     elif Alignments[-4:].upper() == '.BAM':
         fin=os.popen('%ssamtools view -h %s' % (sam_path, Alignments))
     else:
-        parser.error('Input Alignment must be sam or bam file')
+        disp('Input Alignment must be sam or bam file');sys.exit()
     fout = open(output+".sam", 'w')
     disp('Load Alignments in: {}'.format(Alignments))
     for line in fin:
@@ -358,20 +315,15 @@ def reverse_complement(seq):
     seq_rc="".join(seq_rc)
     return(seq_rc)
 
-def Out_base_ratio(tsv_prefix,wig_prefix,wig_bin,camda,min_depth,ref,refmark,handle_SNP,convert_from_base,seq_context_str,seq_context,motif_length,meth0,meth1,depth,meth_ct,depth_ct,nmap):
+def Out_base_ratio(tsv_prefix,wig_prefix,wig_bin,min_depth,ref,refmark,handle_SNP,convert_from_base,seq_context_str,seq_context,motif_length,meth0,depth,meth_ct,depth_ct,nmap):
 
     header=['chr','pos','strand','context','ratio','eff_coverage','N_mod','N_total']
     if handle_SNP > 0: header.extend(['N_mod_rev','N_total_rev'])
 
     fo_mr = open(tsv_prefix+"_AvgMod.tsv", 'w')
     fo_mr.write('\t'.join(header)+'\n')
-    if camda==True:
-        fo_camda = open(tsv_prefix+"_CAMDA.tsv", 'w')
-        fo_camda.write('\t'.join(header)+'\n')
     if wig_prefix!=None:
         fo_mr_wig = open(wig_prefix+"_AvgMod.wig", 'w');fo_mr_wig.write('track type=wiggle_0 name='+wig_prefix+'_MethRatio\n')
-        if camda==True:
-            fo_camda_wig = open(wig_prefix+"_CAMDA.wig", 'w');fo_camda_wig.write('track type=wiggle_0 name='+wig_prefix+'_CAMDA\n')
         disp('Output ratios in tsv files and wiggle files')
     else:
         disp('Output ratios in tsv files')
@@ -381,11 +333,9 @@ def Out_base_ratio(tsv_prefix,wig_prefix,wig_bin,camda,min_depth,ref,refmark,han
     for cr in sorted(depth.keys()):
         depth_cr, meth0_cr, refcr, refmarkcr = depth[cr], meth0[cr], ref[cr], {}
         if refmark!={}:refmarkcr=refmark[cr]
-        if camda==True: meth1_cr=meth1[cr]
         if handle_SNP > 0: depth_ct_cr, meth_ct_cr = depth_ct[cr], meth_ct[cr]
         if wig_prefix!=None:
             fo_mr_wig.write('variableStep chrom={} span={}\n'.format(cr, wig_bin))
-            if camda==True:fo_camda_wig.write('variableStep chrom={} span={}\n'.format(cr, wig_bin))
             bin = wigd = wigm0 = wigm1 = 0
         for i, dd in enumerate(depth_cr):
             if dd < dep0: continue
@@ -397,57 +347,40 @@ def Out_base_ratio(tsv_prefix,wig_prefix,wig_bin,camda,min_depth,ref,refmark,han
                 else: d = dd#float(dd)
             else: d = dd#float(dd)
 
-            if seq_context != []:
-                if refmarkcr[i] not in seq_context: continue
-                else:seq = seq_context_str[refmarkcr[i]-1]
-            else:
-                if refcr[i] == convert_from_base:seq=refcr[i-motif_length:i+motif_length+1]
-                else:seq=reverse_complement(refcr[i-motif_length:i+motif_length+1])
+            # for C2T, candidate site not in defined context (-x) is excluded
+            if seq_context != [] and refmarkcr[i] not in seq_context:continue
+
+            # for any conversion, output motif sequence
+            if refcr[i] == convert_from_base:seq=refcr[i-motif_length:i+motif_length+1]
+            else:seq=reverse_complement(refcr[i-motif_length:i+motif_length+1])
+
             if refcr[i] == convert_from_base:strand = '+'
             else:strand = '-'
 
             m_mr = meth0_cr[i];
-            if camda==True:m_full=meth1_cr[i];m_camda=m_full-m_mr;
             try: ratio_mr = min(m_mr, d)*1.0 / d
             except ZeroDivisionError: continue
-            if camda==True:
-                try: ratio_full = min(m_full, d)*1.0 / d
-                except ZeroDivisionError: continue
-                ratio_camda = ratio_full - ratio_mr
             nc += 1
             nd += d
             if wig_prefix!=None:
                 if i // wig_bin != bin:
                     if wigd > 0:
                         fo_mr_wig.write('{:.0f}\t{:.3f}\n'.format(bin*wig_bin+1, min(wigm0/wigd,1)))# wiggle is 1-based
-                        if camda==True:fo_camda_wig.write('{:.0f}\t{:.3f}\n'.format(bin*wig_bin+1, min((wigm1-wigm0)/wigd,1)))# wiggle is 1-based
                     bin = i // wig_bin#use integer division
                     wigd = wigm0 = 0.0
-                    if camda==True: wigm1 = 0.0
                 wigd += d
                 wigm0 += m_mr
-                if camda==True: wigm1 += m_full
             #denorminator = 1 + z95sq / d
             #pmid_mr = ratio_mr + z95sq / (2 * d)
             #sd_mr = z95 * ((ratio_mr*(1-ratio_mr)/d + z95sq/(4*d*d)) ** 0.5)
             #CIl_mr, CIu_mr = (pmid_mr - sd_mr) / denorminator, (pmid_mr + sd_mr) / denorminator
-            #pmid_camda = ratio_camda + z95sq / (2 * d)
-            #sd_camda = z95 * ((ratio_camda*(1-ratio_camda)/d + z95sq/(4*d*d)) ** 0.5)
-            #CTl_camda, CTu_camda = (pmid_camda - sd_camda) / denorminator, (pmid_camda + sd_camda) / denorminator
             if handle_SNP > 0:
                 fo_mr.write('{}\t{}\t{}\t{}\t{:.3f}\t{:.2f}\t{}\t{}\t{}\t{}\n'.format(cr, i+1, strand, seq, ratio_mr, d, m_mr, dd, m1, d1))# 1-based
             else:
                 fo_mr.write('{}\t{}\t{}\t{}\t{:.3f}\t{:.2f}\t{}\t{}\n'.format(cr, i+1, strand, seq, ratio_mr, d, m_mr, dd))# 1-based
-            if camda==True:
-                if handle_SNP > 0:
-                    fo_camda.write('{}\t{}\t{}\t{}\t{:.3f}\t{:.2f}\t{}\t{}\t{}\t{}\n'.format(cr, i+1, strand, seq, ratio_camda, d, m_camda, dd, m1, d1))# 1-based
-                else:
-                    fo_camda.write('{}\t{}\t{}\t{}\t{:.3f}\t{:.2f}\t{}\t{}\n'.format(cr, i+1, strand, seq, ratio_camda, d, m_camda, dd))# 1-based
     fo_mr.close();
-    if camda==True:fo_camda.close();
     if wig_prefix!=None:
         fo_mr_wig.close();
-        if camda==True:fo_camda_wig.close();
     if nc == 0:
         fold="NA"
     else:
@@ -633,7 +566,11 @@ def generate_new_cigar(all_bins, start, end, old_cigar, trans_dir):
 
 def map_to_genome(header_dict,gtf,segment,unlift,UNLIFT):
     try:
-        genome_info = gtf.get(segment.reference_name)
+        if '|' in segment.reference_name:
+            reference_name = segment.reference_name.split("|")[0]
+        else:
+            reference_name = segment.reference_name
+        genome_info = gtf.get(reference_name)
         new_ref_id = header_dict.get(genome_info['chr'])
         trans_dir = genome_info['strand']
     except TypeError:
@@ -712,24 +649,24 @@ def map_to_genome(header_dict,gtf,segment,unlift,UNLIFT):
                         for f in flags:
                             new_flag |= f
                 else:new_flag=segment.flag
-
-                if "ZS" in [tag[0] for tag in tags]:
-                    for tag, value in tags:
-                        if tag == "ZS":
-                            ts_value = value
-                            if ts_value=='++':new_ts='--'
-                            elif ts_value=='+-':new_ts='-+'
-                            elif ts_value=='-+':new_ts='+-'
-                            elif ts_value=='--':new_ts='++'
-                segment_output.set_tag("ZS", new_ts, value_type="Z")
-                if "XR" in [tag[0] for tag in tags]:
-                    for tag, value in tags:
-                        if tag == "XR":
-                            xr_value = value
-                            xr_value = xr_value.upper()
-                            new_xr=reverse_complement(xr_value)
-                            new_xr=new_xr[:2].lower() + new_xr[2:-2] + new_xr[-2:].lower()
-                    segment_output.set_tag("XR", new_xr, value_type="Z")
+                if trans_dir == "-":
+                    if "ZS" in [tag[0] for tag in tags]:
+                        for tag, value in tags:
+                            if tag == "ZS":
+                                ts_value = value
+                                if ts_value=='++':new_ts='-+'
+                                elif ts_value=='+-':new_ts='--'
+                                elif ts_value=='-+':new_ts='++'
+                                elif ts_value=='--':new_ts='+-'
+                    segment_output.set_tag("ZS", new_ts, value_type="Z")
+                    if "XR" in [tag[0] for tag in tags]:
+                        for tag, value in tags:
+                            if tag == "XR":
+                                xr_value = value
+                                xr_value = xr_value.upper()
+                                new_xr=reverse_complement(xr_value)
+                                new_xr=new_xr[:2].lower() + new_xr[2:-2] + new_xr[-2:].lower()
+                        segment_output.set_tag("XR", new_xr, value_type="Z")
 
                 segment_output.query_name = segment.query_name
                 segment_output.flag = new_flag
@@ -796,8 +733,7 @@ def calc_pval(treat,ctrl,output_prefix,min_depth,method,fdr_method):
             elif method == "poisson":
                 pvalue = scipy.stats.poisson.sf(N_mod, int(math.ceil(ctrl_CR * N_total)))
             elif method == "fisher":
-                #pvalue = scipy.stats.fisher_exact(table=[[N_mod, N_total-N_mod], [N_mod_ctrl, N_total_ctrl-N_mod_ctrl]], alternative='greater')
-                test_statistic, pvalue = scipy.stats.fisher_exact(table=[[N_mod, N_total-N_mod], [N_mod_ctrl, N_total_ctrl-N_mod_ctrl]], alternative='greater')
+                pvalue = scipy.stats.fisher_exact(table=[[N_mod,N_total-N_mod],[N_mod_ctrl,N_total_ctrl-N_mod_ctrl]],alternative='greater')
                 pvalue = pvalue.pvalue
             pvalue_col.append(pvalue)
             outfile.write('{}\t{}\t{}\t{}\t{:.3f}\t{:.2f}\t{}\t{}\t{:.3f}\t{:.3e}\n'.format(row['chr'],row['pos'],row['strand'],row['context'],row['ratio'],row['eff_coverage'],row['N_mod'],row['N_total'],ctrl_CR,pvalue))
@@ -825,8 +761,7 @@ def calc_pval(treat,ctrl,output_prefix,min_depth,method,fdr_method):
             elif method == "poisson":
                 pvalue = scipy.stats.poisson.sf(N_mod, int(math.ceil(ctrl_CR * N_total)))
             elif method == "fisher":
-                #pvalue = scipy.stats.fisher_exact(table=[[N_mod, N_total-N_mod], [N_mod_ctrl, N_total_ctrl-N_mod_ctrl]], alternative='greater')
-                test_statistic, pvalue = scipy.stats.fisher_exact(table=[[N_mod, N_total-N_mod], [N_mod_ctrl, N_total_ctrl-N_mod_ctrl]], alternative='greater')
+                pvalue = scipy.stats.fisher_exact(table=[[N_mod,N_total-N_mod],[N_mod_ctrl,N_total_ctrl-N_mod_ctrl]],alternative='greater')
                 pvalue = pvalue.pvalue
             pvalue_col.append(pvalue)
             outfile.write('{}\t{}\t{}\t{}\t{:.3f}\t{:.2f}\t{}\t{}\t{}\t{}\t{:.3f}\t{:.3e}\n'.format(row_treat['chr'],row_treat['pos'],row_treat['strand'],row_treat['context'],row_treat['ratio'],row_treat['eff_coverage'],row_treat['N_mod'],row_treat['N_total'],N_mod_ctrl,N_total_ctrl,ctrl_CR,pvalue))
@@ -851,6 +786,29 @@ def read_methy_files(ifile, cols=[0,1,2,6,7]):
     meth_file.index = meth_file['pos']
     meth_file.drop(['pos'], axis=1, inplace=True)
     return meth_file
+
+def merge_strand_each_chr(df):
+    df_p = df[df['strand']=='+']
+    df_n = df[df['strand']=='-']
+    df_n.index =  df_n.index.values - 1
+    merge_index = np.sort(np.unique(np.append(df_n.index.values, df_p.index.values)))
+    df_merge = pd.DataFrame(np.zeros(shape=[len(merge_index),2]), index=merge_index)
+    df_merge.loc[df_p.index,:] = df_merge.loc[df_p.index,:] + df_p.loc[:,['modified','total']].values
+    df_merge.loc[df_n.index,:] = df_merge.loc[df_n.index,:] + df_n.loc[:,['modified','total']].values
+    df_merge.columns = ['modified','total']
+    df_merge = df_merge.loc[0:,:] # remove the minus index pos -1
+    return df_merge
+
+def merge_strand(df):
+    chs = df["chr"].unique().tolist()
+    df_merge = pd.DataFrame()
+    for ch in chs:
+        chr_sub = df[df["chr"] == ch]
+        if chr_sub.shape[0] > 0:
+            chr_sub = merge_strand_each_chr(chr_sub)
+            chr_sub['chr']=pd.Series([ch] * chr_sub.shape[0], index=chr_sub.index)
+            df_merge=pd.concat([df_merge, chr_sub])#df_merge=df_merge.append(chr_sub)
+    return df_merge
 
 def Region_weighted_Ratio(ratio_sub,start=0,end=0):
     #ratio_sub: ratio df of one chrom

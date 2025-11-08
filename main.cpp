@@ -45,7 +45,7 @@ bit32_t n_aligned_a=0, n_unique_a=0, n_multiple_a=0;  //number of a reads aligne
 bit32_t n_aligned_b=0, n_unique_b=0, n_multiple_b=0;  //number of b reads aligned
 bit32_t ref_time, read_time;
 bit16_t tid[64];
-char version[] = "1.8";
+char version[] = "1.8.1";
 ostringstream message;
 
 void info(int level) {
@@ -215,12 +215,13 @@ void usage(void)
 		<<"       -M  <str>    the convert-from and convert-to base(s) seperated by ':' [Required option] \n"
 		<<"                    the convert-from base must be single letter from [A,T,C,G], \n"
 		<<"                    the convert-to base(s) can be single or multiple letters from [A,T,C,G,-], '-' represents deletion. \n"
+		<<"                    Note that U in RNA is represented by T. \n"
 		<<"                   examples:\n"
-		<<"                    -M C:T, can detect C>T conversion(e.g. DNA bisulfite seq) \n"
-		<<"                    -M A:G, can detect A>G conversion in RNA m6A seq(e.g. GLORI) or DNA 6mA seq(e.g. NT-seq) \n"
-		<<"                    -M A:CGT, can detect RNA m6A in m6A-SAC-seq, which convert A to C/G/T \n"
-		<<"                    -M T:-, can detect pseudouridine in BID-seq, which convert pseudouridine to deletion \n"
-		<<"                    -M G:ACT-, can detect RNA m7G in m7G-quant-seq, which convert G to A/C/T/deletion \n"
+		<<"                    -M C:T    can detect C>T conversion(e.g. DNA bisulfite seq) \n"
+		<<"                    -M A:G    can detect A>G conversion in RNA m6A seq(e.g. GLORI) or DNA 6mA seq(e.g. NT-seq) \n"
+		<<"                    -M A:CGT  can detect RNA m1A in m1A-IP-seq, which convert A to C/G/T \n"
+		<<"                    -M T:-    can detect pseudouridine in BID-seq, which convert pseudouridine to deletion \n"
+		<<"                    -M G:ACT- can detect RNA m7G in m7G-quant-seq, which convert G to A/C/T/deletion \n"
 		<<"\n  Options for alignment:\n"
 		<<"       -v  <float>  maximum percentage/number of mismatch bases in each read. (default: "<<(param.max_snp_num-100)/100.0<<") \n"
 		<<"                    The float value(between 0 and 1) is interpreted as the percentage of read length.\n"
@@ -236,7 +237,7 @@ void usage(void)
 		<<"       -s  <int>    seed size (8~16), default: 16.\n"
 		<<"       -S  <int>    seed for random number generation used in selecting multiple hits\n"
 		<<"                    set identical values to allow reproducible mapping results. \n"
-		<<"                    (default: "<<param.randseed<<", get seed from system clock, mapping results not resproducible)\n"
+		<<"                    (default: "<<param.randseed<<", get seed from system clock, mapping results not reproducible)\n"
 #ifdef THREAD
 		<<"       -p  <int>    number of processors to use, default: "<<param.num_procs<<"\n"
 #endif
@@ -244,14 +245,16 @@ void usage(void)
 		<<"       -m  <int>    minimal insert size allowed, default: "<<param.min_insert<<"\n"
 		<<"       -x  <int>    maximal insert size allowed, default: "<<param.max_insert<<"\n"
 		<<"\n  Options for reads trimming:\n"
-		<<"       -q  <int>    quality threshold in trimming, 0-40, default: 0 (no trim)\n"
+		<<"       -q  <int>    quality threshold in trimming, 0-40, default: 0\n"
 		<<"       -z  <int>    base quality, default: "<<(int) param.zero_qual<<" [set 64 for Illumina, 33 for Sanger]\n"
 		<<"       -f  <int>    reads containing more than this number of Ns will be skipped, default="<<param.max_ns<<"\n"
-		<<"       -A  <str>    3' end adapter sequence to be trimmed, default: none (no trim)\n"
+		<<"       -A  <str>    3' end adapter sequence to be trimmed, default: none\n"
 		<<"       -L  <int>    map the first N bases of the read, the max is "<<param.max_readlen<<" (default).\n"
 		<<"\n  Options for mapping strand:\n"
-		<<"       -n  [0,1,2]  -n 0: directional protocol, map single-end(SE) reads to forward strands, i.e. ++(same as OT in bismark) and -+(same as OB in bismark). \n"
-		<<"                          For pair-end(PE), map read#1 to ++ and -+, map read#2 to +-(same as CTOT in bismark) and --(same as CTOB in bismark).\n"
+		<<"       -n  [0,1,2]  -n 0: directional protocol, map single-end(SE) reads to forward strands, \n"
+		<<"                          i.e. ++(OT in bismark) and -+(OB in bismark). \n"
+		<<"                          For pair-end(PE), map read#1 to ++ and -+, map read#2 to +-(CTOT \n"
+		<<"                          in bismark) and --(CTOB in bismark).\n"
 		<<"                    -n 1: non-directional protocol, map reads to all 4 strands. \n"
 		<<"                    -n 2: PBAT protocol, map SE reads to reverse strands, i.e. +- and --. \n"
 		<<"                          For PE, map read#1 to +- and --, read#2 to ++ and -+.\n"
@@ -261,7 +264,7 @@ void usage(void)
 		<<"       -R           print corresponding reference sequences in SAM output, default: off\n"
 		<<"       -u           report unmapped reads, default: off\n"
 		<<"       -H           do not print header information in SAM format output\n"
-		<<"       -V  [0,1,2]  verbose level: 0=no message displayed (quiet mode); 1=major message (default); 2=detailed message.\n"
+		<<"       -V  [0,1,2]  verbose level: 0=quiet mode; 1=major message (default); 2=detailed message.\n"
 		<<"       -h           help\n\n";
 	exit(1);
 };
